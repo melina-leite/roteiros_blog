@@ -1,0 +1,295 @@
+---
+title: "Análises Multivariadas em Ecologia"
+subtitle: "1 - Visualização de dados ambientais"
+author: "Melina de Souza Leite http://melinaleite.weebly.com/"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+bibliography: refs.bib
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=F}
+#install_github("melina-leite/rmdformats")
+library(knitr)
+library(skimr)
+library(ggplot2)
+library(tidyverse)
+
+opts_chunk$set(
+  fig.align = "center", fig.show = "hold", fig.height = 4,
+  warning = F, message = F, error = F, cache = T
+)
+options(formatR.arrow = TRUE, width = 90)
+```
+
+Neste roteiro, pretendo apresentar e explorar algumas ferramentas de visualização e exploração de dados multivariados, em especial variáveis ambientais coletadas em diferentes locais. Estes são dados muito utilizados em Ecologia, e portanto merecem nossa atenção, mas isso não quer dizer que as técnicas aqui apresentadas não sejam úteis a outros tipos de dados multivariados, muito pelo contrário!
+
+Para esse roteiro, eu utilizei os livros de @borcard_numerical_2011 (capítulo 2), @manly_multivariate_2017 (Capítulo 3), @everitt_introduction_2011 (Capítulo 2). Vale a pena a leitura destes capítulos para aprofundamento!
+
+# Explorando variáveis ambientais ao longo de um rio
+
+Vamos utilizar os dados disponibilizados em @borcard_numerical_2011 (baixe a planilha de dados ambientais [nesse link](https://drive.google.com/file/d/1WEubmNAlY73RkX2F0A7U9E36McQWl0Ra/view?usp=sharing) e a de dados das coordenadas geográficas dos pontos [nesse link](https://drive.google.com/file/d/1-ZIHoDYU-YIZ5fol_OxUOhGHZDGk-Kfh/view?usp=sharing)),  com dados ambientais coletados em diferentes pontos de um rio.
+
+```{r, echo=F}
+env <- read.table("../../data/DoubsEnv.csv", header=T, sep=",")
+spa <- read.table("../../data/DoubsSpa.csv", header=T, sep=",", 
+                  row.names = 1)
+source("../../data/panelutils.R")
+```
+```{r, eval=F}
+env <- read.table("DoubsEnv.csv", header=T, sep=",")
+spa <- read.table("DoubsSpa.csv", header=T, sep=",", row.names = 1)
+```
+
+```{r, echo=F}
+kable(head(env), caption="Visualização das primeiras linhas dos dados ambientais.")
+```
+
+Vamos observar a planilha de dados ambientais:
+```{r}
+str(env)
+```
+
+Também vale usar as funções:
+```{r, eval=F}
+library(skimr)
+skim(env)
+# e 
+summary(env)
+```
+
+## Mapas das variáveis ambientais 
+
+Se você tem as coordenadas geográficas das variáveis, pode ser muito útil plotar as variáveis ambientais no mapa.
+
+No nosso exemplo, utilizei o script disponível em @borcard_numerical_2011 para plotar algumas variáveis ao longo do rio[^1]. Neste mapa estamos utilizando uma técnica chamada "bubble maps", no qual o tamanho dos círculos é proporcional ao valor da variável analisada.
+
+[^1]: Mantive os nomes das variáveis em inglês para não fazer traduções erradas, pois isso não importa pra gente neste momento.
+
+```{r, fig.height=8}
+par(mfrow=c(2,2))
+plot(spa, asp=1, main="Altitude", pch=21, col="white", bg="red",
+	cex=5*env$alt/max(env$alt), xlab="coord x", ylab="coord y")
+lines(spa, col="light blue")
+plot(spa, asp=1, main="Discharge", pch=21, col="white", bg="blue",
+	cex=5*env$deb/max(env$deb), xlab="coord x", ylab="coord y")
+lines(spa, col="light blue")
+plot(spa, asp=1, main="Oxygen", pch=21, col="white", bg="green3",
+	cex=5*env$oxy/max(env$oxy), xlab="coord x", ylab="coord y")
+lines(spa, col="light blue")
+plot(spa, asp=1, main="Nitrate", pch=21, col="white", bg="brown",
+	cex=5*env$nit/max(env$nit), xlab="coord x", ylab="coord y")
+lines(spa, col="light blue")
+```
+
+Abaixo vai o código para os mesmos plots usando o pacote `ggplot2` para quem preferir:
+```{r, fig.height=8, eval=F}
+library(ggplot2)
+library(cowplot) # melhoras no acabamento do gráfico
+library(patchwork) # compõe vários gráficos em um painel
+
+ggplot(spa, aes(x=x, y=y), col="red") +
+  geom_point(size=10*env$alt/max(env$alt), col="red") +
+  ggtitle("Altitude") +
+  geom_path()  +
+ggplot(spa, aes(x=x, y=y)) +
+  geom_point(size=10*env$deb/max(env$deb), col="blue") +
+  ggtitle("Discharge") +
+  geom_path() +
+ggplot(spa, aes(x=x, y=y)) +
+  geom_point(size=10*env$oxy/max(env$oxy), col="green") +
+  ggtitle("Oxygen") +
+  geom_path() +
+ggplot(spa, aes(x=x, y=y)) +
+  geom_point(size=10*env$nit/max(env$nit), col="brown") +
+  ggtitle("Nitrate") +
+  geom_path()  +
+plot_layout(ncol=2)
+```
+
+
+Qual destas variávies mostra um gradiente montante-jusante? Como você poderia explicar o padrão das outras variáveis? Faça os gráficos para as outras variáveis.
+
+Agora vamos examinar a variação de algumas variáveis ao longo do rio:
+
+```{r, fig.height=8}
+par(mfrow=c(2,2))
+plot(env$das, env$alt, type="l", xlab="Distância (km)", 
+	ylab="Altitude (m)", col="red", main="Altitude")
+plot(env$das, env$deb, type="l", xlab="Distância (km)", 
+	ylab="Discharge (m3/s)", col="blue", main="Discharge")
+plot(env$das, env$oxy, type="l", xlab="Distância (km)", 
+	ylab="Oxygen (mg/L)", col="green3", main="Oxygen")
+plot(env$das, env$nit, type="l", xlab="Distância (km)", 
+	ylab="Nitrate (mg/L)", col="brown", main="Nitrate")
+```
+
+
+## Correlações entre as variáveis
+
+Para explorar graficamente a relação bivariada entre as variáveis ambientais[^2], podemos usar a função `pairs()`, que vai desenhar todas as combinações de variáveis duas a duas. 
+
+[^2]: Para facilitar a visualização, à vezes uso apenas um subconjunto de variáveis.
+
+```{r, fig.height=8}
+pairs(env[,3:7],
+	main="Relações entre variáveis")
+```
+
+Entretanto, esta função pode ser melhorada para nos dar mais informação em um só gráfico. Para fazer o plot abaixo, baixe [esse código](https://drive.google.com/file/d/1-pvdeA58M0KDPjZzHkMLYCGPlfJLx3aX/view?usp=sharing)(disponibilizado por Borcard et al. 2011, de Francois Gillet) e rode a função `panelutils` ou use a função `source` para carrega-la no seu workspace.
+
+```{r, eval=F}
+source("panelutils.R")
+```
+
+```{r, fig.height=8}
+
+
+pairs(env[,3:7], diag.panel = panel.hist, upper.panel = panel.cor,
+      lower.panel = panel.smooth,	main="Relações entre variáveis")
+```
+
+Esse gráfico nos dá os histogramas de cada variável na diagonal, os gráficos de dispersão nos painéis debaixo e os valores das correlações com seu níveis de significância (astericos abaixo do valor da correlação). O histogramas são úteis para se avaliar a distribuição dos dados, e os gráficos de dispersão para ver a forma das relações entre as variáveis (relações lineares, monotônicas, etc.)
+
+Existe também o pacote `corrplot` que faz gráficos de painéis bem legais. Vale a pena olhar a vinheta do pacote (está no help)! Abaixo vai um exemplo, no qual ordenamos as variáveis fazendo um agrupamento hierárquico (aqui eu escolhir 4 grupos e também existem diferentes métodos de escolha) para ver quais variáveis são mais relacionadas entre si.
+
+```{r}
+library(corrplot)
+
+M <- cor(env[,2:11]) # primeiro é preciso fazer as correlações
+corrplot(M, method="circle", insig = "p-value", order="hclust", addrect=4)
+```
+
+A principal desvantage do painel de plots bivariados é que aspectos dos dados que aparecem apenas quando 3 ou mais variáveis são consideradas em conjunto não ficam aparentes. 
+
+Estes gráficos também só são adequados para comparar as variáveis e não os locais (objetos ou unidades amostrais, as linhas da matriz).
+
+
+## Visualizando a comparação entre locais
+
+### As faces de Chernoff
+
+Existem algumas alternativas para visualizar a relação entre os locais de acordo com as variáveis ambientais.
+
+Uma destas são as faces de Chernoff, com a função `faces` (ou `faces1) disponível no pacote `TeachingDemos`. Nela podemos comparar os locais de coleta de dados olhando para as faces de cada local - faces mais mais parecidas significam locais mais parecidos. A ideia é usar as variáveis como definidoras das características das faces, logo uma das variáveis vai controlar o tamanho dos olhos, outra o formato da cabeça, o tamnho da boca, assim por diante. É uma forma bem divertida de explorar os dados!
+
+São 15 parâmetros de implementação das faces na função `faces2`, usamos o argumento `which` se quisermos especificar qual parâmetro para qual variável:  
+
+1. Altura da face  
+2. Largura da face  
+3. Formato da face  
+4. Altura da boca  
+5. Largura da boca  
+6. Curvatura da boca  
+7. Altura dos olhos  
+8. Largura dos olhos  
+9. Altura dos cabelos  
+10. Largura dos cabelos  
+11. Estilo dos cabelos  
+12. Altura do nariz  
+13. Largura do nariz  
+14. Largura das orelhas  
+15. Altura das orelhas  
+
+```{r, fig.height=8}
+library(TeachingDemos)
+canmat <- data.matrix(env[,2:7])
+faces2(canmat, labels = row.names(env), which= c(3,5,6,8,11,13))
+```
+
+```{r, eval=F}
+#outro pacote e função para desenhar as faces:
+library(aplpack)
+fa <- faces(env[,2:7],plot=FALSE)
+plot(fa,face.type=2)
+```
+
+Aqui vemos novamente que pontos de amostragem no rio parecem formar um gradiente de condições ambientais, ou seja, os pontos mais próximos possuem as faces mais parecidas. 
+
+
+### As estrelas
+
+As estrelas são uma forma similiar de observar a relação entre os locais de amostragm baseando-se nas variáveis ambientais. A função `stars` está no pacote base do R.
+
+```{r, fig.height=8}
+stars(env[,3:8], labels = row.names(env), draw.segments = TRUE, nrow=5, ncol=7,
+      key.loc = c(10,2))
+```
+
+Eu particularmente gosto muito desta visualização, pois nos permite observar as variáveis mais importantes (com os maiores valores) em cada local e os locais mais parecidos ao mesmo tempo. Por exemplo, o ponto 1 está em alta altitude e declividade (`pen`), e seguindo o curso do rio (indo em direção ao local 30), temos que a descarga (`deb`) aumenta junto com a concentração de cálcio (`dur`). 
+
+Estes plots são outra forma de observar o gradiente ambiental das variáveis, como feito nos mapas inicialmente.
+
+### Perfil das Variáveis
+
+Essa é uma forma de representar os locais (objetos) todos de uma vez, e é especialmente útil quando temos variáveis em uma mesma unidade, por exemplo dados de diferentes medidas morfológicas de animais, o que não é o caso dos nossos dados. Porque os dados ambientais são dimensionalmente heterogêneos (diferentes unidades e escalas), precisamos que eles sejam **padronizados para z-score** (média zero e unidade de variância - centraliza e escalona). Assim, removemos a dimensionalidade dos dados, permitindo as comparações.
+
+[^4]: note que nos gráficos anteriores de faces e estrelas, os dados foram automaticamente padronizados com o argumento padrão `scale = TRUE`.
+
+```{r}
+env.p <- scale(env[,2:12], center = T, scale = T)
+env.p <- data.frame(env$X, env.p)
+```
+
+```{r}
+# para re-organizar os dados vamos usar o pacote tidyverse
+library(tidyverse)
+env.p %>% 
+  gather("variaveis", "valores", 2:12) %>% # re-organizando os dados
+  filter(env.X %in% seq(1,30,3)) %>% # pegando alguns locais apenas para visualização
+ggplot(aes(x=variaveis, y=valores, group=env.X, col=env.X)) + #plot com ggplot2
+  geom_line() +
+  scale_color_continuous("locais", breaks = c(1,10,20,28), labels=c(1,10,20,30))
+```
+
+Além de compararmos os locais em relação às variáveis ambientais, também conseguimos ver a variablidade dos dados. Por exemplo, vemos que a variável `pen` tem pouca variabilidade, mas possui um valor extremo. O pH em comparação às outras variáveis também tem pouca variabilidade. Certas análises multivariadas tem como premissa a variância homogênea entre variáveis, e esse plot de perfil pode ajudar a diagnosticar isso.
+
+
+## Boxplots bivariado para comparar variáveis
+
+Everitt & Hothorn 2011 apresentam uma maneira bem interessante de observar as relações entre 2 variáveis, o **boxplot bivariado**. 
+Estes boxplots são também extremamente úteis na identificação de valores extremos (_outliers_).
+
+Os boxplots bivariados são baseados nos cálculos "robustos" das medidas de locação, escala e correlação e consiste em um par de elipses concêntricas, uma das quais inclui 50% dos dados e a outra que delinea o limite dos dados e deixa de fora possíveis _outliers_. Também são desenhadas linhas de regressão de x em y e de y em x, com sua interseção mostrando o parâmetro de locação (média das duas variáveis). O ângulo entre as linhas de regressão serão tão pequenos quanto maior for a correlação entre as variáveis.
+
+Vamos usar a função `bvbox` do pacote `MVA` que acompanha o livro de Everitt & Hothorn 2011, para observar as relações entre altitute e as outras variáveis:
+
+```{r, fig.height=10}
+library(MVA)
+par(mfrow=c(3,3))
+bvbox(env[,c(3,4)], xlab = colnames(env)[3], ylab = colnames(env)[4], pch="")
+text(env[,3], env[,4], env$X)
+bvbox(env[,c(3,5)], xlab = colnames(env)[3], ylab = colnames(env)[5], pch="")
+text(env[,3], env[,5], env$X)
+bvbox(env[,c(3,6)], xlab = colnames(env)[3], ylab = colnames(env)[6], pch="")
+text(env[,3], env[,6], env$X)
+bvbox(env[,c(3,7)], xlab = colnames(env)[3], ylab = colnames(env)[7], pch="")
+text(env[,3], env[,7], env$X)
+bvbox(env[,c(3,8)], xlab = colnames(env)[3], ylab = colnames(env)[8], pch="")
+text(env[,3], env[,8], env$X)
+bvbox(env[,c(3,9)], xlab = colnames(env)[3], ylab = colnames(env)[9], pch="")
+text(env[,3], env[,9], env$X)
+bvbox(env[,c(3,10)], xlab = colnames(env)[3], ylab = colnames(env)[10], pch="")
+text(env[,3], env[,10], env$X)
+bvbox(env[,c(3,11)], xlab = colnames(env)[3], ylab = colnames(env)[11], pch="")
+text(env[,3], env[,11], env$X)
+bvbox(env[,c(3,12)], xlab = colnames(env)[3], ylab = colnames(env)[12], pch="")
+text(env[,3], env[,12], env$X)
+par(mfrow=c(1,1))
+```
+
+Nestes plots, já podemos observar que existem pares de variáveis com _outliers bivariados_ em alguns locais (identificados com os números nos plots). Podemos ver que, quando as variáveis não são correlacionadas, o formato do boxplot bivariado é praticmante um círculo, como acontece entre altitude e pH.
+
+# Referências consultadas
+
+
+
+
+
+
+
