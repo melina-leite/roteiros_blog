@@ -1,0 +1,177 @@
+---
+title: "Matrizes de gráficos para relações entre variáveis"
+author: "Melina de Souza Leite http://melinaleite.weebly.com/"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=F}
+#install_github("melina-leite/rmdformats")
+library(knitr)
+library(ggplot2)
+library(tidyverse)
+
+opts_chunk$set(
+  fig.align = "center", fig.show = "hold", fig.height = 6,
+  warning = F, message = F, error = F, cache = T
+)
+options(formatR.arrow = TRUE, width = 90)
+```
+
+É muito comum que tenhamos um conjunto de dados com muitas variáveis e queiramos saber a relação entres estas variáveis, por exemplo, quais são mais ou menos correlacionadas entre si (positiva ou negativamente) ou se as correlações são parecidas entre si (matriz de correlação estruturada) ou todas bem diferentes (matriz não estruturada).
+
+Avaliar as correlações entre variáveis é um dos primeiros passos na análise de dados e serve tanto como exploração e tomada de decisão em análises multivariadas como em análises baseadas em modelos lineares (nas quais se tem muitas variáveis preditoras que não devem estar relacionadas - o problema da colinearidade entre variáveis confundindo a estimação dos coeficientes).
+
+Neste roteiro, pretendo explorar algumas ferramentas gráficas sobre correlações que fui encontrando em diversos materiais. 
+
+Para fazer esse roteiro, é esperado que o leitor já saiba o que é uma [correlação](https://pt.wikipedia.org/wiki/Correla%C3%A7%C3%A3o) entre duas variáveis e tenha conhecimento básico de R.
+
+Neste roteiro vamos utilizar os dados `swiss` e `iris` disponíveis no pacote `datasets` que vem com o Rbase. Para detalhes destes conjuntos de dados usar: `help(swiss)` e `help(iris)`.
+
+```{r}
+data(swiss)
+data(iris)
+```
+
+A função mais simples a se utilizar é a `cor`, que vai gerar uma matriz de correlações entre as variáveis. Lembrando que essa função nos dá a opção de 3 métodos diferentes para calcular as correlações, que vão ser mais ou menos úteis dependendo da natureza dos teus dados. A correlação de **Pearson** é a padrão, usada para dados quantitativos contínuos. Há também a de **Spearman** e **Kendall** que são medidas de associação em ordenação dos dados (rank).
+
+```{r}
+knitr::kable(cor(swiss))
+```
+
+Muitos vão concordar que é muito mais interessante olhar para gráficos do que números! Então vamos às funções para visualização gráfica das correlações.
+
+# Matriz de gráficos no R Base
+
+O plot de Draftman, também conhecido como matriz de gráficos (tradução minha para _scatterplot matrix_), pode ser computado no R com a simples função `pairs`.
+
+```{r}
+pairs(swiss)
+```
+
+Com esse plot conseguimos observar os gráficos de dispersão para cada par de variáveis e entener melhor os números que aparecem na matriz de correlação. Porém, este gráfico repete informação nas diagonais ("gastando tinta à toa"), deixando de lado muitas outras informações interessantes.
+
+Por exemplo, podemos colocar histogramas de frequência nas diagonais para visualizar a distribuição dos dados em cada variável. 
+```{r}
+#função retirada do help(pairs)
+panel.hist <- function(x, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+```
+
+```{r}
+pairs(swiss, diag.panel = panel.hist)
+```
+
+Outra modificação pode ser colocar os coeficientes das correlações em um dos painéis triangulares, condicionando o tamanho dos números ao valor da correlação
+```{r}
+#função retirada do help(pairs)
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+```
+
+```{r}
+pairs(swiss, diag.panel = panel.hist, upper.panel = panel.cor)
+```
+
+E por fim, podemos visualizar melhor a forma da associação entre as variáveis colocando uma linha de suavização nos gráficos (método [LOWESS](https://en.wikipedia.org/wiki/Local_regression)), avaliando então se a relação é realmente linear, ou pelo menos monotônica.
+```{r}
+pairs(swiss, diag.panel = panel.hist, upper.panel = panel.cor,
+      lower.panel = panel.smooth)
+#panel.smooth já existe como função no R
+```
+
+A partir dos exemplos de funções acima, podemos criar outras que nos agrade mais e que nos ajude a entender melhor os gráficos. Por exemplo, se eu quiser colocar uma reta de regressão nos gráficos de dispersão, posso modificar a função panel.smooth.
+```{r}
+panel.lm <- function (x, y, col = par("col"), bg = NA, pch = par("pch"), 
+    cex = 1, col.line="red") {
+    points(x, y, pch = pch, col = col, bg = bg, cex = cex)
+    ok <- is.finite(x) & is.finite(y)
+    if (any(ok)) {
+       abline(lm(y[ok]~x[ok]), col = col.line)
+    }
+}
+```
+
+```{r}
+pairs(swiss, diag.panel = panel.hist, upper.panel = panel.cor,
+      lower.panel = panel.lm)
+```
+
+# Matriz de gráficos no pacote `GGally`
+
+Este pacote é baseado no pacote `ggplot2`, que é uma outra maneira de se fazer gráficos no R. Além de muitas outras funcionalidades interessantes (ver [documentação](http://ggobi.github.io/ggally/index.html)), o `GGally` também tem uma função análoga ao `pairs`.
+
+```{r}
+library(GGally)
+```
+
+```{r}
+ggpairs(swiss)
+```
+
+Essa função é legal para quando também temos variáveis categóricas no conjunto de dados, por exemplo no conjunto de dados `iris` que tem diversas medidas de 3 espécies diferentes.
+```{r}
+ggpairs(iris, lower = list(
+    continuous = "smooth"))
+```
+
+Ou podemos comparar as medidas entre espécies num mesmo com os valores das correlações, histogramas e gráficos de dispersão para cada espécie. 
+```{r}
+ggpairs(iris, columns = 1:4, ggplot2::aes(colour=Species))
+```
+
+O bom da função `ggpairs` é brincar com as diferentes formas de representar as variávies nos painéis, para isso mexemos nos argumentos `upper`, `lower` e `diag`, para cada tipo de relação entre variáveis: `continous` vai descrever o que plotar entre duas variáveis contínuas; `combo` entre uma contínua e uma discreta e `discrete` entre duas variáveis discretas. Vale a pena olhar o [material do pacote](ggobi.github.io/ggally/rd.html) e testar diferentes combinações!
+
+# Matriz de gráficos em outros pacotes
+
+Temos também variantes do `pairs` no pacote `car` (função `scatterPlotMatrix`) e no pacote `lattice` (função `splom`). 
+Abaixo, só para não deixar de apresentar, eu coloco exemplos das funções sem explorar muito seus argumentos.
+
+```{r}
+car::spm(~ Sepal.Length + Sepal.Width +  Petal.Length|Species, 
+         data = iris,
+        by.group=TRUE)
+```
+
+```{r}
+lattice::splom(iris)
+```
+
+<!---
+- continuar com corrgram, corrplot e ggcor -  pacotes que parecem fazer coisas bem parecidas, tipo heatmaps
+https://cran.r-project.org/web/packages/corrgram/vignettes/corrgram_examples.html 
+http://www.tandfonline.com/doi/abs/10.1198/000313002533 
+https://briatte.github.io/ggcorr/ 
+
+- tutorial p criar redes de correlação corrr gggraph (https://drsimonj.svbtle.com/how-to-create-correlation-network-plots-with-corrr-and-ggraph)
+
+--->
+
+
+
+
+
+
+
+

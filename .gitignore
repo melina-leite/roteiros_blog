@@ -4,8 +4,11 @@ roteiro_plots_bigdata/.Rhistory
 .DS_Store
 
 roteiro_plots_bigdata/roteiro_plots_bigdata_cache/*
-
 roteiro_plots_bigdata/roteiro_plots_bigdata_files/*
-
 roteiro_plots_bigdata/rsconnect/*
 
+graficos_correlacoes/.RData
+graficos_correlacoes/.Rhistory
+graficos_correlacoes/plots_correlacoes_cache/*
+graficos_correlacoes/plots_correlacoes_files/*
+graficos_correlacoes/rsconnect/*
