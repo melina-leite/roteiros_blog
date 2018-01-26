@@ -1,0 +1,138 @@
+---
+title: "Diagnóstico de valores extremos em dados multivariados"
+author: "Melina de Souza Leite http://melinaleite.weebly.com/"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+bibliography: refs.bib
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=F}
+#install_github("melina-leite/rmdformats")
+library(knitr)
+library(skimr)
+library(ggplot2); library(cowplot); library(patchwork)
+library(tidyverse)
+
+opts_chunk$set(
+  fig.align = "center", fig.show = "hold",
+  warning = F, message = F, error = F, cache = T
+)
+options(formatR.arrow = TRUE, width = 90)
+```
+
+Geralmente construímos [boxplots](https://pt.wikipedia.org/wiki/Diagrama_de_caixa) para observar possíveis valores extremos em nossas variáveis de interesse (veja no link como o boxplot é usado para classificar valores extremos). Assim, analisamos as variáveis uma a uma para encontrar possíveis _outliers univariados_.
+
+Entretanto, quando fazemos análises multivariadas e assumimos que os dados vêm de uma população com distribuição normalidade multivariada, nós precisamos olhar todas as varáveis de uma vez e daí os boxplots univariados não nos servem mais. Detectar valores extremos em observações univariadas é diferente de detectá-los de maneira multivariada e o que era um _outlier_ nos boxplots univariados pode não ser mais num contexo multivariado e vice-versa.
+
+Neste roteiro,  apresento os **boxplots bivariados** do pacote `MVA`, descritos em @everitt_introduction_2011 e o uso da **Distância de Mahalanobis** de cada observação ao centróide dos dados para diagnóstico de valores extremos.
+
+# Boxplots em um exemplo bivariado
+
+Vamos começar com um exemplo com apenas duas variáveis para facilitar a inspeção visual. 
+
+Vamos pegar duas variáveis do conjunto de dados `swiss` do pacote `datasets`[^1], e primeiro inspecioná-las seapradamente por boxplots.
+
+[^1]: que não precisa ser carregado porque já vem junto como R base.
+
+```{r}
+# carregando pacotes gráficos:
+library(ggplot2); library(cowplot); library(patchwork)
+
+# determina as observações outiers para serem nomeadas no plot
+# critério usado na construção dos boxplots
+out <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+```
+
+```{r}
+ggplot(swiss, aes(y=Examination, x="Examination")) + 
+  geom_boxplot() + xlab("") +
+  geom_dotplot(binaxis = "y", stackdir = "center", position = "dodge", 
+               fill="white", dotsize=0.8) +
+  
+ggplot(swiss, aes(y=Education, x="Education")) + 
+  geom_boxplot() + xlab("") +
+  geom_dotplot(binaxis = "y", stackdir = "center", position = "dodge",
+               fill="white", dotsize=0.8) +
+  annotate("text", x=c(1.2,1.2,1.2,1.2,0.8), 
+           y=swiss[out(swiss[,4]),4], 
+           label= rownames(swiss[out(swiss[,4]),])) +
+  
+  plot_layout(ncol=2) 
+```
+
+Para `Examination` não encontramos outliers segundo o método do boxplot, mas para `Education` temos 5 valores extremos. 
+
+Vamos agora desenhar um **boxplot bivariado** conforme @everitt_introduction_2011. Os boxplots bivariados são baseados nos cálculos "robustos" das medidas de locação, escala e correlação e consiste em um par de elipses concêntricas, uma das quais inclui 50% dos dados e a outra que delinea o limite dos dados e deixa de fora possíveis _outliers_. Também são desenhadas linhas de regressão de x em y e de y em x, com sua interseção mostrando o parâmetro de locação (média das duas variáveis). O ângulo entre as linhas de regressão serão tão pequenos quanto maior for a correlação entre as variáveis.
+
+Vamos usar a função `bvbox` do pacote `MVA` que acompanha o livro de @everitt_introduction_2011, para observar a relação entre as variáveis.
+```{r}
+library(MVA)
+bvbox(swiss[,c(3,4)], xlab = colnames(swiss)[3], ylab = colnames(swiss)[4])
+text(x = swiss[out(swiss[,4]),3], y = swiss[out(swiss[,4]),4]-2.5, 
+     rownames(swiss[out(swiss[,4]),]))
+```
+
+No boxplot bivariado, os mesmos outliers que foram detectados para `Education` também estão aparecendo do boxplot bivariado.
+
+# Usando a distância de Mahalanobis
+
+A **distância de Mahalanobis** ($D^2_M$) é uma medida de distância entre as observações (unidades amostrais) e pode também ser usada para medir a distância entre uma única observação multivariada e o centro da população (multivariado não se esqueça), da qual esta esta observação vem (@manly_multivariate_2017). É uma medida que leva em consideração a correlação entre as variáveis. Não entrarei em detalhes de como ela é calculada, para isso veja [esse link](https://en.wikipedia.org/wiki/Mahalanobis_distance), mas quero apenas apresentar a intuição do que é medido com esta distância ao centro da distribuição (consirando sempre uma Normal Multivariada).
+
+O valor $D^2_M$ pode ser pensado como um resíduo multivariado para a observação $x$, ou seja, é uma medida de quão longe a obervação $x$ está do centro da distribuição de todos os valores, levando em consideração todas as variáveis consideradas e suas covariâncias (@manly_multivariate_2017). Um valor alto de $D^2_M$ para a observação $x$ pode indicar um possível outlier multivariado, se excluímos a possibilidade de erro de digitação/registro ou que a observação seja de outra distribuição. 
+
+Vamos calcular $D^2_M$ para cada observação dos dados apresentados acima, e plotar estas distâncias. Um critério para o diagnóstico dos outliers a partir da distância de Mahalanobis é verificar se a distância calculada está acima de um limiar $c^2$, que nada mais é do que a estatística do Qui-quadrado ($\chi^2$) calculada para um valor de $p$ escolhido. No exemplo abaixo, eu escolhi um $p$ de 5% e fui na distribuição de ($\chi^2$) com 2 graus de liberdade (número de variáveis sendo analisadas) saber qual é o quantil e desenhei a linha pontilhada com este valor. 
+
+```{r}
+maha <- mahalanobis(swiss[,3:4], # dados
+                    center = colMeans(swiss[,3:4]), # médias das variáveis
+                    cov = cov(swiss[,3:4])) # matriz de covariâncias
+
+#calculando o cˆ2 para delimitar o limiar
+quant <- qchisq(0.05, 2, lower.tail = F)
+
+plot(1:length(maha), maha, xlab = "Observações", 
+     ylab= "Distância de Mahalanobis")
+abline(h=quant, lty=2)
+
+out <- maha[maha>quant]
+text(c(42,46,47)-7, out, names(out))
+```
+
+Desta forma, para o critério usando a distância de Mahalanobis, apenas 3 observações foram consideradas outliers bivariados. Este critério está dizendo que as 3 observações com maior distância tem pouca probabilidade de serem advindas da população com distribuição normal bivariada assumida nos dados.
+
+# Diagnosticando outliers multivariados
+
+Agora vamos expandir nosso exemplo usando todas as variáveis existentes nos dados `swiss`.
+Aqui eu não vou fazer os boxplots bivariados (você já sabe como faz), mas quero apenas mostrar o plot da distância de Mahalanobis para ver se, com mais variáveis, temos diferentes outliers detectados. 
+
+```{r}
+maha2 <- mahalanobis(swiss, center = colMeans(swiss), cov = cov(swiss))
+
+# para calcular o cˆ2, lembre-se que os graus de liberdade agora são 6
+quant2 <- qchisq(0.05, 6, lower.tail = F)
+
+plot(1:length(maha2), maha2, xlab = "Observações", 
+     ylab= "Distância de Mahalanobis")
+abline(h=quant2, lty=2)
+
+out2 <- maha2[maha2>quant2]
+text(c(6,19,47)-4, out2, names(out2))
+```
+
+
+Com mais variáveis apenas uma observação permaneceu sendo detectada como outlier, e por isso a importância de se analisar os outliers em dados multivariados de maneira conjunta!
+
+Vale lembrar que estes valores extremos não necessariamente são erros de digitação/medida, mas podem ser valores reais, porém pouco prováveis. A decisão sobre o que fazer com estes _possíveis outliers_ detectados depende muito da natureza dos dados, do contexto de coleta, do tipo de análise a ser conduzida e do conhecimento dos pesquisadores envolvidos. 
+
+Uma sugestão feita por @manly_multivariate_2017 é a de conduzir análises com e sem os valores extremos e comparar os resultados Se a conclusão é a mesma, então não há problemas. Mas se as conclusões dependem muito dos _outliers_, então é preciso muito mais cuidado com as decisões a serem tomadas.
+
+# Referências
+
