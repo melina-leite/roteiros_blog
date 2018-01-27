@@ -15,3 +15,8 @@ graficos_correlacoes/rsconnect/*
 outliers_multivariados/outliers_multivariados_cache/*
 outliers_multivariados/outliers_multivariados_files/*
 outliers_multivariados/analises_preliminares/.Rhistory
+normalidade_multivariada/normal_multivariada_cache/*
+normalidade_multivariada/normal_multivariada_files/*
+
+outliers_multivariados/.RData
+outliers_multivariados/.Rhistory
