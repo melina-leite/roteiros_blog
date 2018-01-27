@@ -1,5 +1,5 @@
 ---
-title: "Testando premissa de normalidade multivariada"
+title: "Testando normalidade multivariada"
 author: "Melina de Souza Leite http://melinaleite.weebly.com/"
 date: "`r format(Sys.time(), '%d de %B de %Y')`"
 bibliography: refs.bib
@@ -23,6 +23,11 @@ opts_chunk$set(
 )
 options(formatR.arrow = TRUE, width = 90)
 ```
+
+<!---
+AINDA PRECISA COLOCAR O LINK PARA O ROTEIRO DE OUTLIERS:
+QUANDO FOR PARA O BLOG, COLOCAR ROTEIRO DO BLOG, QUANDO ESTIVER NO RPUBS, ROTEIRO PARA O RPUBS.
+--->
 
 
 Em diversas análises de dados quantitativos multivariados existe a premissa de que a distribuição dos dados segue uma Normal Multiviariada. Outras abordagens, mesmo não exigindo, são beneficiados quando os dados são  multinormalidade  ou pelo menos, não assimétricos (distribuições com caudas longas). Portanto, um passo crucial nas análises é verificar essa premissa.
