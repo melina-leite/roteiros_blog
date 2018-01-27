@@ -117,7 +117,7 @@ Aqui eu não vou fazer os boxplots bivariados (você já sabe como faz), mas que
 maha2 <- mahalanobis(swiss, center = colMeans(swiss), cov = cov(swiss))
 
 # para calcular o cˆ2, lembre-se que os graus de liberdade agora são 6
-quant2 <- qchisq(0.05, 6, lower.tail = F)
+quant2 <- qchisq(0.95, 6)
 
 plot(1:length(maha2), maha2, xlab = "Observações", 
      ylab= "Distância de Mahalanobis")
@@ -128,7 +128,23 @@ text(c(6,19,47)-4, out2, names(out2))
 ```
 
 
-Com mais variáveis apenas uma observação permaneceu sendo detectada como outlier, e por isso a importância de se analisar os outliers em dados multivariados de maneira conjunta!
+Com mais variáveis, apenas uma observação permaneceu sendo detectada como outlier, havendo também outras observações detectadas, e por isso a importância de se analisar os outliers em dados multivariados de maneira conjunta!
+
+## Usando pacote `MVN`
+
+O pacote `MVN` possui uma função que também detecta outliers multivariados. Esse pacote usa dois métodos chamados de _robustos_ (ver detales [aqui](https://pdfs.semanticscholar.org/5508/25b2681f1cc067c66df6ddbd62c74b441869.pdf?_ga=2.25175998.286279602.1517010562-1528935492.1517010562)) para calcular a distância de Mahalanobis (a distância de Mahalanobis Robusta e a Ajustada), e portanto dão resultados um pouco diferentes. 
+
+Outra diferença é que o gráfico de resultado é um plot quantil-quantil (_qqplot_), com um dos eixos sendo a $D^2_M$ e o outro os quantis de uma distribuição ($\chi^2$). 
+
+```{r}
+library(MVN)
+
+outliers <- mvOutlier(swiss, alpha=0.95, method="quan") 
+# tente method="adj.quan"
+```
+
+
+# Observações finais
 
 Vale lembrar que estes valores extremos não necessariamente são erros de digitação/medida, mas podem ser valores reais, porém pouco prováveis. A decisão sobre o que fazer com estes _possíveis outliers_ detectados depende muito da natureza dos dados, do contexto de coleta, do tipo de análise a ser conduzida e do conhecimento dos pesquisadores envolvidos. 
 
@@ -136,3 +152,17 @@ Uma sugestão feita por @manly_multivariate_2017 é a de conduzir análises com 
 
 # Referências
 
+
+<!---
+DÚVIDAS PARA PROFA JULIA
+
+- QUAL O ALPHA GERALMENTE SE ESCOLHE PARA DETECTAR OUTLIERS? 0.9, 0.95, 0.5?
+
+-  HÁ VANTAGENS EM SE USAR UMA ESTIMAÇÃO ROBUSTA PARA CALCULAR AS DISTÂNCIAS DE MAHALANOBIS, COMO FEITO NO mvOutlier()
+"Robust distances are estimated from minimum covariance determinant estimators rather than the sample covariance [29]."
+
+covr <- covMcd(data, alpha = alpha)
+mah <- mahalanobis(data, center = covr$center, cov = covr$cov, tol = tol)
+crt <- arw(x = data, m0 = covr$center, c0 = covr$cov, 
+            alpha = 0.025)$cn
+--->
