@@ -1,5 +1,5 @@
 ---
-title: "Testes de significância com dados multivariados no R"
+title: "Alguns testes de hipótese com dados multivariados"
 author: "Melina de Souza Leite"
 date: "`r format(Sys.time(), '%d de %B de %Y')`"
 output:
@@ -13,37 +13,34 @@ output:
 
 ```{r setup, echo=FALSE, warning=FALSE, message=F}
 library(knitr)
-library(skimr)
 library(ggplot2)
 library(tidyverse)
 
 opts_chunk$set(
-  fig.align = "center", fig.show = "hold", fig.height = 4,
+  fig.align = "center", fig.show = "hold",
   warning = F, message = F, error = F, cache = T
 )
 options(formatR.arrow = TRUE, width = 90)
 ```
 
-Esse roteiro é uma introdução sobre algumas maneiras de se testar algumas hipóteses com dados multivariados em R. O roteiro não pretende ser estatisticamente rigoroso, mas principalmente explicar sucintamente algums métodos a partir de exemplos e estimular os leitores a buscar mais informações e fontes de estudo. Aqui eu também assumo que o leitor já tenha familiaridade com testes de hipótese univariados, como teste T e ANOVA, e com o ambiente de programação R.
+Esse roteiro é uma introdução sobre algumas maneiras de se testar algumas hipóteses com dados multivariados. O roteiro não pretende ser estatisticamente rigoroso, mas principalmente explicar sucintamente algums métodos a partir de exemplos e estimular os leitores a buscar mais informações e fontes de estudo. Aqui eu também assumo que o leitor já tenha familiaridade com testes de hipótese univariados, como teste T e ANOVA, e com o ambiente de programação R.
 
-Segui o Capítulo 4 do livro do Manly & Navarro Alberto 2016, cujos códigos de exemplo estão disponíveis online [nesse site](https://www.researchgate.net/publication/311283141_R_code_and_data_sets). 
+Para fazer o roteiro, eu segui o Capítulo 4 do livro do Manly & Navarro Alberto 2016, cujos códigos de exemplo estão disponíveis online [nesse site](https://www.researchgate.net/publication/311283141_R_code_and_data_sets). 
 
 Dados multivariados "aparecem" quando coletamos muitas variáveis em um mesma unidade amostral, por exemplo quando tiramos amostras de sangue e medimos diversos parâmetros para formação de um hemograma. Os testes que vamos lidar aqui, dizem respeito a quando temos os dados divididos em grupos, por exemplo, coletas de sangue de homens e mulheres, e queremos testar se há diferenças entre estes grupos considerando as variáveis medidas ao mesmo tempo, ao contrário de uma análise univariada que faríamos os testes separadamente para cada variável.
 
-Não quer dizer que seja totalmente errado fazer teses univariados para cada variável medida, mas essa abordagm tem algumas desvantagem. Uma das principais é que as chances de se afirmar que existe diferença entre os grupos quando não há aumenta com o número de testes feitos, ou seja com o número de variáveis medidas (chamado de erro tipo I). Exitem formas de se contral esse erro, por exemplo utilizando a **correção de bonferroni** para corrigir o nível de significância dos testes, mas estas correções geralmente são muito conservadoras (veremos exemplos a seguir). Outra desvantagem é que com testes univariados perdemos a informação de covariância (ou correlação) entre as variáveis, ou seja, o grau de associação entre as variáveis, que pode ser de grande importância na interpretação dos dados em mãos.
+Não quer dizer que seja totalmente errado fazer teses univariados para cada variável medida, mas essa abordagem tem desvantagem. Uma das principais é que as chances de se afirmar que existe diferença entre os grupos quando não há (erro tipo I) aumenta com o número de testes feitos, ou seja com o número de variáveis medidas. Exitem formas de se controlar esse erro, por exemplo utilizando a **correção de bonferroni** para corrigir o nível de significância dos testes, mas estas correções geralmente são muito conservadoras (veremos exemplos a seguir). Outra desvantagem é que com testes univariados perdemos a informação de covariância (ou correlação) entre as variáveis, ou seja, o grau de associação entre as variáveis, que pode ser de grande importância na interpretação dos dados em mãos.
 
 Para dados multivariados, geralmente é preferível condizir um único teste que usa a informação de todas as variáveis juntas. Por exemplo, quando se deseja testar a hipótese de que as médias de todas as variáveis seja a mesma para diferentes grupos (populações), com um resultado significativo demonstrando a evidência de quem as médias diferem em pelo menos UMA variável. 
 
-As principais premissas dos testes de hipótese multivariados são a normalidade multivariada, geralmente, a homogeneidade de variâncias dos dados. Alguns testes são relativamente robustos para estas premissas, mas é sempre bom checa-las (assunto para outro roteiro). 
+As principais premissas dos testes de hipótese multivariados são a normalidade multivariada e, geralmente, a homogeneidade de variâncias dos dados. Alguns testes são relativamente robustos para estas premissas, mas é sempre bom checa-las (assunto para outro roteiro). 
 
-# Comparando médias entre dois grupos
+# Comparando médias entre DOIS grupos
 
-Aqui, vamos utilizar os dados de sobrevivência de pardais fornecidos em Manly & Navarro (2016)[1] (Tabela 1). Estes dados consistem em 5 medidas corporais de 49 pardais em dois grupos, os que sobreviveram a uma tempestade (21) e os que morreram (28). Não vamos entrar em detalhes sobre a biologia dos dados e partiremos do pressuposto de que os indivíduos foram coletados de maneira indepenente e que nossa hipótese é de que os pardais que sobrevieram possuiam uma morfologia diferente dos que vieram a falecer. 
-
-[1]: Para isso, baixe o material do livro disponível  [nesse site](https://www.researchgate.net/publication/311283141_R_code_and_data_sets). Informações sobre os dados estão disponíveis no próprio livro Capítulo 1.
+Aqui, vamos utilizar os dados de sobrevivência de pardais fornecidos em Manly & Navarro (2016) (Tabela 1). Estes dados consistem em 5 medidas corporais de 49 pardais em dois grupos, os que sobreviveram a uma tempestade (21) e os que morreram (28). Não vamos entrar em detalhes sobre a biologia dos dados e partiremos do pressuposto de que  os dados são uma amostra aleatória de uma população maior de sobreviventes e não sobreviventes. Nossa hipótese é de que os pardais que sobrevieram possuiam uma morfologia diferente dos que vieram a falecer. 
 
 ```{r}
-pardais <- read.csv("Bumpus_sparrows.csv",header=TRUE)
+pardais <- read.csv("Bumpus sparrows.csv",header=TRUE)
 ```
 
 ```{r, echo=F}
@@ -69,13 +66,50 @@ Olhando cada variável no boxplot, parece não haver muita diferença entre os p
 
 ## Verificando premissas do método
 
-### Normalidade Multivariada
+Vamos verificar se há valores extremos mulivariados para cada grupo. Para mais sobre detecção de outliers multivariados veja [esse roteiro]().
 
-### Homogeneidade de variâncias
+<!---
+DÚVIDA:
+quando tenho grupos separando meus dados, eu devo availiar a presentça de outliers multivariados dentro de cada grupo ou no total dos dados?
 
-## Fazendo testes univariados para cada variável
+devo também checar a normalidade multivariada no total dos dados ou para cada grupo?
+--->
 
-Para comparações com o teste multivariado, vamos fazer primeiro testes T para cada variável do banco de dados. Mesmo que os dados não sejam "tão" normais multivariados ou que tenham variâncias iguais, o teste T é considerado relativamente robusto à estas premissas.
+```{r}
+library(MVN)
+out <- mvOutlier(pardais[pardais$Survivorship=="S",-1], method="adj.quan")
+
+maha2 <- mahalanobis(pardais[,-1], center = colMeans(pardais[,-1]), cov = cov(pardais[,-1]))
+
+# para calcular o cˆ2, lembre-se que os graus de liberdade agora são 6
+quant2 <- qchisq(0.95, 6)
+
+plot(1:length(maha2), maha2, xlab = "Observações", 
+     ylab= "Distância de Mahalanobis")
+abline(h=quant2, lty=2)
+
+out2 <- maha2[maha2>quant2]
+text(c(31)-4, out2, 31)
+```
+
+
+Vamos avaliar agora a normalidade multivariada das medidas morfológicas. Mais sobre testes de normalidade multivariada [neste roteiro]()
+
+```{r}
+mardiaTest(pardais[,-1], qqplot=T)
+```
+
+Observando a homogeneidade das matrizes de covariâncias para cada grupo. Mais sobre homogeneidade de matrizes de covariânci para dados normais multivariados [nesse roteiro]().
+```{r}
+library(biotools)
+boxM(pardais[,-1], pardais[,1])
+```
+
+Até aqui, está tudo bem com as premissas dos testes de hipótese multivariado.
+
+## Testes univariados para cada variável
+
+Para comparações com o teste multivariado, vamos fazer primeiro testes $t$ (considerando variáveis independentes e variâncias homogêneas) para cada variável do banco de dados.
 
 ```{r}
 t.test(Total_length ~ Survivorship, data = pardais, var.equal = TRUE)
@@ -86,6 +120,7 @@ t.test(L_keel_sternum ~ Survivorship, data = pardais, var.equal = TRUE)
 ```
 
 
+
 ## Comparando as médias de todas as variáveis para sobrevivente e não-sobreviventes
 
 Para essa comparação vamos utilizar o teste T^2^ de Hotelling, que é uma generalização da estatística t.
@@ -94,9 +129,28 @@ Para essa comparação vamos utilizar o teste T^2^ de Hotelling, que é uma gene
 library(Hotelling)  
 t2multi <- hotelling.test(Total_length + Alar_extent + L_beak.head + 
                               L_humerous + L_keel_sternum ~ Survivorship, 
-                              data=sparrows)
+                              data=pardais)
 cat("T2 statistic =",t2multi$stat[[1]],"\n",
     "P-value = ", t2multi$pval)
 ```
+
+Com base neste resultado podemos inferir que não existem diferenças morfológicas entre os grupos de pardais que sobreviveram e que não sobreviveram. 
+
+Neste exemplo, tanto a abordagem por testes univariados quanto o teste multivariado deram resultados semelhante, mas este não é sempre o caso. Pode haver análises em que há testes univariados sendo significativos enquanto o teste multivariado pode não indica diferença entre grupos, indicando que a evidência de diferença provida pelas variáveis significativas é mascarada pela evidência de ausência de diferença provida pela variáveis não significativas. O contrário também acontece, ou seja, não havendo variáveis significativas em testes univariados e um resultado significativo multivariado, indicando uma acumulação de evidência das variáveis individuais no teste multivariado. 
+
+Neste exemplo, fizemos 6 testes univariados, o que aumentou nossa chance de erro de tipo I exatamente em 1 - 0.95^6 = 0.26. Enquanto que o teste multivariado mantém o nível de erro tipo I constantem em 0.05 independentemente no número de variáveis envolvidas.
+
+Para ajustar os níveis de significância e controlar a probabilidade geral de um erro do tipo 1 em testes univariados, podemos usar a **Correção de Bonferroni**. Por exemplo, se $k$ testes são conduzidos usando um nível de significância de $(5/k)$%, então a probabilidade de obter um resultado significativo é menor do que 0.05 quando a hipótese nula é verdadeira. Portanto, no nosso exemplo, para aceitarmos um teste como significativo, o valor de p deveria ser menor do que 0.008.
+Quando o número de testes/variáveis é alto, muitas vezes não é vantajoso usar correção de bonferroni, mas existem outras alternativas menos conservadoras ou então, a melhor solução seria conduzir um teste multivariado.
+
+
+# Comparando médias para MAIS de dois grupos 
+
+
+
+
+
+
+
 
 
