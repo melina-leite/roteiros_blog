@@ -1,0 +1,102 @@
+---
+title: "Testando homocedasticidade em dados multivariados"
+author: "Melina de Souza Leite"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+bibliography: refs.bib
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=F}
+library(knitr)
+library(ggplot2)
+
+opts_chunk$set(
+  fig.align = "center", fig.show = "hold",
+  warning = F, message = F, error = F, cache = T
+)
+options(formatR.arrow = TRUE, width = 90)
+```
+
+
+Muitos testes de hipótese multivariados (ver [este roteiro]()) baseiam-se na homocedasticidade das matrizes de covariância, que é o análogo multivariado da homogeneidade de variâncias em testes de hipótese univariados (por exemplo, usando o teste de [Levene](https://en.wikipedia.org/wiki/Levene%27s_test) para avaliar homocedasticidade univariada). 
+
+Neste roteiro vamos abordar dois tipos de testes para avaliar se as matrizes de covariância são homogêneas em testes de hipótese comparando médias em diferentes grupos. 
+
+# Dados
+
+Como exemplo, vamos utilizar os dados de medidas morfológicas de pardais que sobreviveram e que não sobreviveram à uma tempestado disponibilizados no material que acompanha o livro de @manly_multivariate_2017 (baixe os dados [aqui](https://www.researchgate.net/publication/311283141_R_code_and_data_sets)).
+
+```{r}
+pardais <- read.csv("Bumpus sparrows.csv",header=TRUE)
+```
+
+Vamos primeiro observar as matrizes de correlação (que são as matrizes de covariância padronizadas pelos desvios padrões) para cada grupo (sobreviventes e não sobreviventes), pois são mais fáceis de se comparar:
+
+```{r}
+cor(pardais[pardais$Survivorship == "S", -1])
+```
+
+```{r}
+cor(pardais[pardais$Survivorship == "NS", -1])
+```
+
+Para facilitar a inspeção visual, eu fiz a diferença entre as correlações do grupo não-sobrevivente com o sobrevivente.
+
+```{r}
+cor(pardais[pardais$Survivorship == "NS", -1]) - cor(pardais[pardais$Survivorship == "S", -1])
+```
+
+Aqui, podemos ver que, apesar de muitas correlações terem uma diferença pequena, todas as diferenças são positivas indicando que o grupo não-sobrevivente possui maior variabilidade nas medidas morfológicas do que o grupo sobrevivente. Seriam estas diferenças significativas?
+
+
+# Teste M de Box (Box M-test)
+
+Este teste compara a variação em duas ou mais amostras multivariadas. É considerado um testes sensível à premissa de normalidade multivariada, e portanto é possivel que um resultado significativo seja devido à não normalidade dos dados do que à matrizes de covariância não homogêneas (@manly_multivariate_2017). 
+
+Vamos primeiro observar a normalidade multivariada dos dados (roteiro útil [aqui]()).
+```{r}
+library(MVN)
+
+mardiaTest(pardais[,-1], qqplot=T)
+```
+
+Agora vamos apliar o teste M de box que está disponível no pacote `biotools` com a função `boxM`. Nesta função, damos a matriz de variáveis quantitativas que queremos comparar e o vetor que identifica os grupos a serem comparados 
+
+```{r}
+library(biotools)
+boxM(pardais[,-1], pardais[,1])
+```
+
+Com este teste, concluimos que as diferenças que observamos nas matrizes de correlação não são signficativas. Então, podemos dizer que há homocedasticidade multivariada nos dados.
+
+# Método PERMDIST: uma generalização do teste de Levene univariado
+
+Podemos também comparar a homocedasticidade das matrizes de covariância com uma generalização do teste de homogeneidade de variâncias de Levene proposto por Anderson (2006). Esta proposta está baseada na distância das observações aos centróides dos grupos no espaço multivariado. Para testar se as variâncias dos grupos são diferentes, as distâncias entre as observações dos grupos ao centróide do grupo são comparadas por ANOVA. Quando usamos a distância euclidiana, temos o análogo multivariado do teste de Levene (mas é possível usar outras distâncias/dissimilaridades).
+
+A função `betadisper()` do pacote `vegan` faz o teste e o `help(betadisper)` provém bastante informação interessante sobre essa abordagem, vale a pena conferir!
+
+```{r}
+library(vegan)
+mod <- betadisper(dist(pardais[,-1], "euclidian"), pardais[,1])
+anova(mod)
+```
+
+O resultado deste método também indica que podemos afirmar homocedasticidade entre as matrizes de covariância para os pardais sobreviventes e não sobreviventes. 
+
+O legal desta abordagem é que conseguimos desenhar um gráfico dos eixos de uma Análise de Coordenadas Principais ( [PCoA](https://en.wikipedia.org/wiki/PCoA)), comparando os grupos. 
+```{r}
+plot(mod)
+```
+
+Neste gráfico vemos que os pardais que não-sobrevieram tem maior variabilidade (as distâncias de suas observações são mais espalhadas), como havíamos suposto comaprando as matrizes de correlação. E também vemos que não parece haver diferença na variabilidade entre os pardais que sobreviveram ou não.
+
+
+# Referências
+
+Anderson, M.J. (2006) Distance-based tests for homogeneity of multivariate dispersions. Biometrics 62, 245–253.
