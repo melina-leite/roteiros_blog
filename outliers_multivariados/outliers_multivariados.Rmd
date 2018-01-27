@@ -130,7 +130,7 @@ text(c(6,19,47)-4, out2, names(out2))
 
 Com mais variáveis, apenas uma observação permaneceu sendo detectada como outlier, havendo também outras observações detectadas, e por isso a importância de se analisar os outliers em dados multivariados de maneira conjunta!
 
-## Usando pacote `MVN`
+## Usando pacote `MVN
 
 O pacote `MVN` possui uma função que também detecta outliers multivariados. Esse pacote usa dois métodos chamados de _robustos_ (ver detales [aqui](https://pdfs.semanticscholar.org/5508/25b2681f1cc067c66df6ddbd62c74b441869.pdf?_ga=2.25175998.286279602.1517010562-1528935492.1517010562)) para calcular a distância de Mahalanobis (a distância de Mahalanobis Robusta e a Ajustada), e portanto dão resultados um pouco diferentes. 
 
