@@ -68,7 +68,7 @@ library(MVN)
 mardiaTest(pardais[,-1], qqplot=T)
 ```
 
-Agora vamos apliar o teste M de box que está disponível no pacote `biotools` com a função `boxM`. Nesta função, damos a matriz de variáveis quantitativas que queremos comparar e o vetor que identifica os grupos a serem comparados 
+Agora vamos apliar o teste M de box que está disponível no pacote `biotools` com a função `boxM`. Nesta função, damos a matriz de variáveis quantitativas que queremos comparar e o vetor que identifica os grupos a serem comparados.
 
 ```{r}
 library(biotools)
@@ -79,19 +79,21 @@ Com este teste, concluimos que as diferenças que observamos nas matrizes de cor
 
 # Método PERMDIST: uma generalização do teste de Levene univariado
 
-Podemos também comparar a homocedasticidade das matrizes de covariância com uma generalização do teste de homogeneidade de variâncias de Levene proposto por Anderson (2006). Esta proposta está baseada na distância das observações aos centróides dos grupos no espaço multivariado. Para testar se as variâncias dos grupos são diferentes, as distâncias entre as observações dos grupos ao centróide do grupo são comparadas por ANOVA. Quando usamos a distância euclidiana, temos o análogo multivariado do teste de Levene (mas é possível usar outras distâncias/dissimilaridades).
+Podemos também comparar a homocedasticidade multivariada com uma generalização do teste de homogeneidade de variâncias de Levene proposto por Anderson (2006). Esta proposta está baseada na distância das observações aos centróides dos grupos no espaço multivariado ([distância de mahalanobis]()). Para testar se as variâncias dos grupos são diferentes, as distâncias entre as observações dos grupos ao centróide do grupo são comparadas por ANOVA. Quando usamos a distância euclidiana, temos o análogo multivariado do teste de Levene, mas é possível usar outras distâncias.
 
 A função `betadisper()` do pacote `vegan` faz o teste e o `help(betadisper)` provém bastante informação interessante sobre essa abordagem, vale a pena conferir!
 
 ```{r}
 library(vegan)
-mod <- betadisper(dist(pardais[,-1], "euclidian"), pardais[,1])
+pardist <- dist(pardais[,-1], "euclidian")
+mod <- betadisper(pardist, pardais[,1])
 anova(mod)
 ```
 
-O resultado deste método também indica que podemos afirmar homocedasticidade entre as matrizes de covariância para os pardais sobreviventes e não sobreviventes. 
+O resultado deste método também indica homocedasticidade entre as matrizes de covariância para os pardais sobreviventes e não sobreviventes. 
 
 O legal desta abordagem é que conseguimos desenhar um gráfico dos eixos de uma Análise de Coordenadas Principais ( [PCoA](https://en.wikipedia.org/wiki/PCoA)), comparando os grupos. 
+
 ```{r}
 plot(mod)
 ```
