@@ -15,7 +15,6 @@ output:
 ```{r setup, echo=FALSE, warning=FALSE, message=F}
 #install_github("melina-leite/rmdformats")
 library(knitr)
-library(ggplot2); library(cowplot); library(patchwork)
 
 opts_chunk$set(
   fig.align = "center", fig.show = "hold",
@@ -30,15 +29,15 @@ QUANDO FOR PARA O BLOG, COLOCAR ROTEIRO DO BLOG, QUANDO ESTIVER NO RPUBS, ROTEIR
 --->
 
 
-Em diversas análises de dados quantitativos multivariados existe a premissa de que a distribuição dos dados segue uma Normal Multiviariada. Outras abordagens, mesmo não exigindo, são beneficiados quando os dados são  multinormalidade  ou pelo menos, não assimétricos (distribuições com caudas longas). Portanto, um passo crucial nas análises é verificar essa premissa.
+Em diversas análises de dados quantitativos multivariados existe a premissa de que a distribuição dos dados segue uma **normal multiviariada**. Outras abordagens, mesmo não exigindo, são beneficiadas quando os dados são multinormais ou pelo menos, não assimétricos (distribuições com caudas longas).
 
-Abaixo descrevo brevemente algumas formas de se testar e verificar graficamente a normalidade multivariada. Vale a pena ver antes o roteiro de [deteção de outliers]() que irá ajudar a entender melhor os dados, já que muitas vezes a presença de outliers é responsável pela "não-normalidade" dos dados.
+Abaixo descrevo brevemente algumas formas de se testar e verificar graficamente a normalidade multivariada. Vale a pena ver o roteiro de [deteção de valores extremos]() que irá ajudar a entender melhor os dados, já que muitas vezes a presença de _outliers multivariados_ é responsável pela "não-normalidade" dos dados.
 
 Nesse roteiro utilizarei principalmente o pacote [`MVN`](https://pdfs.semanticscholar.org/5508/25b2681f1cc067c66df6ddbd62c74b441869.pdf?_ga=2.25175998.286279602.1517010562-1528935492.1517010562).
 
 # Testando normalidade em cada variável separadamente
 
-Geralmente, a primeira inspeção dos dados é observar gráficos e teses de normalidade para cada variável separadamente. 
+Geralmente, a primeira inspeção dos dados é observar gráficos e testes de normalidade para cada variável separadamente. 
 
 Vamos usar os dados `swiss`  do pacote `datasets`[^1].
 
@@ -53,12 +52,12 @@ library(MVN)
 uniPlot(swiss, "histogram")
 ```
 
-Boxplots também ajudam a observar a distribuição dos dados e possíveis valores extremos (outliers).
+Boxplots também ajudam a observar a distribuição dos dados e possíveis valores extremos (_outliers_).
 ```{r}
 uniPlot(swiss, "box")
 ```
 
-Mas talvez o gráfico mais importante para observar normalidade é o gráfico quantil-quantil (`qqplot`):
+Mas talvez o gráfico mais importante para observar normalidade é o gráfico quantil-quantil (`qqplot`).
 
 ```{r}
 uniPlot(swiss, "qqplot")
@@ -67,7 +66,7 @@ uniPlot(swiss, "qqplot")
 
 No qqplot, variáveis que seguem uma distribuição normal deveriam manter-se sobre a linha reta desenhada no gráfico. 
 
-Com estes gráficos, vemos que a variável `Catholic` está bem distante de uma normal pois tem uma distribuição muito achatada ("kurtosis"), e que `Education` tem uma cauda muito longa tornando a distribuição assimétrica ("skewness").
+Com todos estes gráficos, vemos que a variável `Catholic` está bem distante de uma normal pois tem uma distribuição muito achatada ("kurtosis"), e que `Education` tem uma cauda muito longa tornando a distribuição assimétrica ("skewness").
 
 Agora, vamos olhar os testes de normalidade de [Shapiro-Wilk](https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test), que é um dos mais recomendáveis (@legendre_numerical_2012).
 ```{r}
@@ -86,32 +85,32 @@ Existem diferentes testes para normalidade multivariada, e aqui vamos analisar 3
 
 ## Teste de Mardia
 
-É um teste baseado nas extensões multivariadas para assimetria e curtose ("achatamento"). 
+É um teste baseado nas extensões multivariadas para assimetria (_skewness_) e curtose ("achatamento", _kurtosis_) e foi recomendado por @shipley_cause_2004 no contexto de análies de modelos de equações estruturais.
 
-Usando a função `mardiaTest`, temos os resultados para a assimetria multivariada (primeiro conjunto de resultados), para a assimetria corrigida para pequeno tamanho amostral (último cojunto de dados) e para o achatamente (curtose). Aparentemente, o que mais "atrapalha" a multinormalidade é a assimetria
-
-```{r}
-mardiaTest(swiss, qqplot=T)
-```
-
-Nos testes univariados vimos que `Education` era a variável com maior assimetria na distribuição. Se retirarmos esta variável dos dados?
+Usando a função `mardiaTest`, temos os resultados para a assimetria multivariada (primeiro conjunto de resultados), para a assimetria corrigida para pequeno tamanho amostral (último cojunto de dados) e para o achatamente (curtose). Aparentemente, o que mais "atrapalha" a multinormalidade é a assimetria.
 
 ```{r}
-mardiaTest(swiss[,-4])
+library(MVN)
+mardiaTest(swiss)
 ```
 
-Continuamos com assimetria multivariada!!
-E se transformarmos estes dados em log? 
+Nos testes univariados vimos que `Education` era a variável com maior assimetria na distribuição. E se transformarmos apenas esta variável em seu log?
 
 ```{r}
 mardiaTest(cbind(swiss[,-4], log(swiss[,4])))
 ```
 
-Bom, aparentemente não é só `Education` que está deixando os dados não multinormais. Removendo também `Catholic` vemos que, mesmo apresentando curtose e não assimetria, estas variável estava influenciando bastante no teste de Mardia.
+Continuamos com assimetria multivariada! 
+
+Aparentemente não é só `Education` que está deixando os dados "não multinormais". É preciso entender melhor a natureza dos dados e possíveis transformações para garantir a multinormalidade do conjunto de dados.
+
+Apenas como exercício, vamos remover `Education` e `Catholic` para ver se estas variável são as "vilãs" da multinormalidade.
 
 ```{r}
 mardiaTest(swiss[,-c(4:5)])
 ```
+
+Bingo!
 
 ## Teste de Henze-Zirklers
 
@@ -143,7 +142,7 @@ roystonTest(swiss[,-c(4:5)])
 ```
 
 
-# Conclusões
+# Conclusão
 
 Em nosso exemplo, todos os 3 diferentes testes de normalidade multivariada convergiram em seus resultados, o que significa maior confiança nos resultados. Mas tão importante quanto fazer os testes é fazer o gráfico qqplot para a normalidade multivariada. Nas funções de testes usadas acima, temos a opção de visualização gráfica do qqplot com o argumento `qqplot=TRUE`.
 
@@ -152,7 +151,7 @@ Em nosso exemplo, todos os 3 diferentes testes de normalidade multivariada conve
 hzTest(swiss, qqplot=T)
 ```
 
-Observando o plot, podemos supor que possam existir dados extremos que estejam levando à distribuição multivariada não se conformar com a normalidade, portanto, também é importante verificar nos dados os outliers multivariados (veja [este roteiro]()) na tentativa de entender melhor os dados em mãos para fazer melhores escolhas de análises. 
+Observando o plot, podemos supor que possam existir dados extremos que estejam levando à distribuição multivariada não se conformar com a normalidade, portanto, também é importante verificar nos dados os possíveis [_outliers multivariados_]() na tentativa de entender melhor os dados em mãos para fazer melhores escolhas de análises. 
 
 
 # Referências
