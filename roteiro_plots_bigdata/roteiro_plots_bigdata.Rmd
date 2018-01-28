@@ -71,9 +71,9 @@ Como os histogramas separados em cada plot, às vezes fica difícil compará-los
 
 Uma alternativa ao histograma de densidade são os ridgeline plots do pacote `ggridges` que são gráficos parcialmente sobrepostos criando a impressão de uma cadeia de montanhas (Figura \@ref(fig:ridge). São gráficos particularmente bons para visualizar as mudanças na distribuição no tempo e espaço, pois permite uma comparação visualmente mais fácil entre os grupos. Não deixe de olhar a vinheta do pacote para exemplos de customização.
 
-Neste exemplo, primeiro eu ordeno as companhias aéreas por sua mediana[^1].
+Neste exemplo, primeiro eu ordeno as companhias aéreas por sua mediana[^2].
 
-[^1]: mas as medianas são bem parecidas então o efeito não fica tão legal quanto poderia.
+[^2]: como as medianas são bem parecidas, o efeito não fica tão legal quanto poderia...
 
 ```{r ridge, fig.cap= "Ridges plots formando uma cadeia de montanhas das densidades das distribuições dos dados para cada companhia aérea."}
 library(ggridges)
@@ -134,15 +134,15 @@ ontime %>% mutate(group = reorder(UniqueCarrier, TaxiOut, median)) %>%
 
 Uma recém criada alternativa aos boxplots convencionais, são os _letter-value plots_ (veja Hofmann et al. 2017), que estão disponíveis no pacote `lvplot`. Este plot é baseado na estimativa de quantis (outros que não o primeiro e terceiro como no boxplot). Entretanto, as estimativas somente são confiáveis se há bastante dados!
 
-Abaixo alguns exemplos de uso dos lv-plots, com algumas opções para a largura dos plots:
+Abaixo alguns exemplos de uso dos _lvplots_, com algumas opções para a largura das caixas:
 
-1. `linear`: torna a largura de cada xaixa inversamente proporcional ao quantil (letter-value) que ele representa, ou seja, começando com os quartis, cada caixa subsequente será um passo mais fina do que a anterior.
+1. `linear`: torna a largura de cada caixa inversamente proporcional ao quantil (letter-value) que ela representa, ou seja, começando com os quartis, cada caixa subsequente será um passo mais fina do que a anterior.
 
-2. `area`: torna a área de cada caixa proporcional ao número de observações nela. 
+2. `area`: torna a _área_ de cada caixa proporcional ao número de observações nela. 
 
-3. `height`: torna a largura de cada caixa proporcional ao número de pontos nela.
+3. `height`: torna a _largura_ de cada caixa proporcional ao número de pontos nela.
 
-```{r lvarea, fig.cap="Um exemplo de lvplot com largura area."}
+```{r lvarea, fig.cap="Um exemplo de lvplot com largura da caixa `height."}
 library(lvplot)
 library(patchwork) # para fazer painel com vários plots
 lv <- ontime %>% mutate(group = reorder(UniqueCarrier, TaxiOut, median)) %>%
@@ -151,17 +151,17 @@ lv <- ontime %>% mutate(group = reorder(UniqueCarrier, TaxiOut, median)) %>%
   theme(legend.position = "none")
 
 lv + geom_lv(aes(fill=..LV..), width.method = "height") +
-  scale_fill_lv() + ggtitle("Largura do plot `height`")
+  scale_fill_lv() + ggtitle("Largura da caixa `height`")
 ```
 
-```{r lvlinear, fig.cap="Um lvplot com largura do plot linear."}
+```{r lvlinear, fig.cap="Um lvplot com largura da caixa linear."}
 lv + geom_lv(aes(fill=..LV..), width.method = "linear") +
-  scale_fill_lv() + ggtitle("Largura do plot `linear`")
+  scale_fill_lv() + ggtitle("Largura da caixa `linear`")
 ```
 
-Eu particularmente acho o gráfico com largura `height` o mais bonito![^3]
+Eu particularmente acho o gráfico com largura `height` o mais bonito[^3]!
 
-[3^]: Apesar de ainda achar as cores padrão não tão bonitas.
+[^3]: Apesar de ainda achar as cores padrão não tão bonitas.
 
 Compare a diferença no número de valores extremos encontrados no boxplot comum e no lvplot!
 

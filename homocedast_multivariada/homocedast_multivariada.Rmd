@@ -23,6 +23,9 @@ opts_chunk$set(
 options(formatR.arrow = TRUE, width = 90)
 ```
 
+<!---
+AINDA PRECISA COLOCAR OS LINKS DE ROTEIROS ANTERIORES - normalidade multivariada
+--->
 
 Muitos testes de hipótese multivariados (ver [este roteiro]()) baseiam-se na homocedasticidade das matrizes de covariância, que é o análogo multivariado da homogeneidade de variâncias em testes de hipótese univariados (por exemplo, usando o teste de [Levene](https://en.wikipedia.org/wiki/Levene%27s_test) para avaliar homocedasticidade univariada). 
 
@@ -39,7 +42,7 @@ pardais <- read.csv("Bumpus sparrows.csv",header=TRUE)
 Vamos primeiro observar as matrizes de correlação (que são as matrizes de covariância padronizadas pelos desvios padrões) para cada grupo (sobreviventes e não sobreviventes), pois são mais fáceis de se comparar:
 
 ```{r}
-cor(pardais[pardais$Survivorship == "S", -1])
+cov(pardais[pardais$Survivorship == "S", -1])
 ```
 
 ```{r}
@@ -62,7 +65,6 @@ Este teste compara a variação em duas ou mais amostras multivariadas. É consi
 Vamos primeiro observar a normalidade multivariada dos dados (roteiro útil [aqui]()).
 ```{r}
 library(MVN)
-
 mardiaTest(pardais[,-1], qqplot=T)
 ```
 
