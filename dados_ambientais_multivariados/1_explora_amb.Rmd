@@ -148,7 +148,7 @@ pairs(env[,3:7], diag.panel = panel.hist, upper.panel = panel.cor,
 
 Esse gráfico nos dá os histogramas de cada variável na diagonal, os gráficos de dispersão nos painéis debaixo e os valores das correlações com seu níveis de significância (astericos abaixo do valor da correlação). O histogramas são úteis para se avaliar a distribuição dos dados, e os gráficos de dispersão para ver a forma das relações entre as variáveis (relações lineares, monotônicas, etc.)
 
-Existe também o pacote `corrplot` que faz gráficos de painéis bem legais. Vale a pena olhar a vinheta do pacote (está no help)! Abaixo vai um exemplo, no qual ordenamos as variáveis fazendo um agrupamento hierárquico (aqui eu escolhir 4 grupos e também existem diferentes métodos de escolha) para ver quais variáveis são mais relacionadas entre si.
+Existe também o pacote `corrplot` que faz gráficos de painéis bem legais. Vale a pena olhar a vinheta do pacote (está no help)! Abaixo vai um exemplo, no qual ordenamos as variáveis fazendo um agrupamento hierárquico (você escolhe o número de grupos e também o métodos de agrupamento) para ver quais variáveis são mais relacionadas entre si.
 
 ```{r}
 library(corrplot)
