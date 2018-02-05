@@ -23,11 +23,8 @@ opts_chunk$set(
 options(formatR.arrow = TRUE, width = 90)
 ```
 
-<!---
-AINDA PRECISA COLOCAR OS LINKS DE ROTEIROS ANTERIORES - normalidade multivariada
---->
 
-Muitos testes de hipótese multivariados (ver [este roteiro]()) baseiam-se na homocedasticidade das matrizes de covariância, que é o análogo multivariado da homogeneidade de variâncias em testes de hipótese univariados (por exemplo, usando o teste de [Levene](https://en.wikipedia.org/wiki/Levene%27s_test) para avaliar homocedasticidade univariada). 
+Muitos testes de hipótese multivariados baseiam-se na homocedasticidade das matrizes de covariância, que é o análogo multivariado da homogeneidade de variâncias em testes de hipótese univariados (por exemplo, usando o teste de [Levene](https://en.wikipedia.org/wiki/Levene%27s_test) para avaliar homocedasticidade univariada). 
 
 Neste roteiro vamos abordar dois tipos de testes para avaliar se as matrizes de covariância são homogêneas em testes de hipótese comparando médias em diferentes grupos. 
 
@@ -62,7 +59,7 @@ Aqui, podemos ver que, apesar de muitas correlações terem uma diferença peque
 
 Este teste compara a variação em duas ou mais amostras multivariadas. É considerado um testes sensível à premissa de normalidade multivariada, e portanto é possivel que um resultado significativo seja devido à não normalidade dos dados do que à matrizes de covariância não homogêneas (@manly_multivariate_2017). 
 
-Vamos primeiro observar a normalidade multivariada dos dados (roteiro útil [aqui]()).
+Vamos primeiro observar a normalidade multivariada dos dados (roteiro útil [aqui](http://rpubs.com/melinatarituba/356739)).
 ```{r}
 library(MVN)
 mardiaTest(pardais[,-1], qqplot=T)
