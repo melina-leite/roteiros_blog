@@ -31,7 +31,7 @@ QUANDO FOR PARA O BLOG, COLOCAR ROTEIRO DO BLOG, QUANDO ESTIVER NO RPUBS, ROTEIR
 
 Em diversas análises de dados quantitativos multivariados existe a premissa de que a distribuição dos dados segue uma **normal multiviariada**. Outras abordagens, mesmo não exigindo, são beneficiadas quando os dados são multinormais ou pelo menos, não assimétricos (distribuições com caudas longas).
 
-Abaixo descrevo brevemente algumas formas de se testar e verificar graficamente a normalidade multivariada. Vale a pena ver o roteiro de [deteção de valores extremos]() que irá ajudar a entender melhor os dados, já que muitas vezes a presença de _outliers multivariados_ é responsável pela "não-normalidade" dos dados.
+Abaixo descrevo brevemente algumas formas de se testar e verificar graficamente a normalidade multivariada. Vale a pena ver o roteiro de [deteção de valores extremos](http://rpubs.com/melinatarituba/356726) que irá ajudar a entender melhor os dados, já que muitas vezes a presença de _outliers multivariados_ é responsável pela "não-normalidade" dos dados.
 
 Nesse roteiro utilizarei principalmente o pacote [`MVN`](https://pdfs.semanticscholar.org/5508/25b2681f1cc067c66df6ddbd62c74b441869.pdf?_ga=2.25175998.286279602.1517010562-1528935492.1517010562).
 
@@ -114,7 +114,7 @@ Bingo!
 
 ## Teste de Henze-Zirklers
 
-Este teste está baseado na [distância de Mahalanobis](https://en.wikipedia.org/wiki/Mahalanobis_distance) entre cada observação e o centróide da distribuição e também na distância de Mahalanobis entre as observações (veja [esse roteiro]() para mais detalhes).
+Este teste está baseado na [distância de Mahalanobis](https://en.wikipedia.org/wiki/Mahalanobis_distance) entre cada observação e o centróide da distribuição e também na distância de Mahalanobis entre as observações (veja [esse roteiro](http://rpubs.com/melinatarituba/356726) para mais detalhes).
 
 ```{r}
 hzTest(swiss)
@@ -151,7 +151,7 @@ Em nosso exemplo, todos os 3 diferentes testes de normalidade multivariada conve
 hzTest(swiss, qqplot=T)
 ```
 
-Observando o plot, podemos supor que possam existir dados extremos que estejam levando à distribuição multivariada não se conformar com a normalidade, portanto, também é importante verificar nos dados os possíveis [_outliers multivariados_]() na tentativa de entender melhor os dados em mãos para fazer melhores escolhas de análises. 
+Observando o plot, podemos supor que possam existir dados extremos que estejam levando à distribuição multivariada não se conformar com a normalidade, portanto, também é importante verificar nos dados os possíveis [_outliers multivariados_](http://rpubs.com/melinatarituba/356726) na tentativa de entender melhor os dados em mãos para fazer melhores escolhas de análises. 
 
 
 # Referências
