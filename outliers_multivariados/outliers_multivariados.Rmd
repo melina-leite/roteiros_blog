@@ -42,7 +42,8 @@ Escolhemos duas variáveis do conjunto de dados `swiss` do pacote `datasets`[^2]
 ```{r}
 # para determinar as observações outiers a serem nomeadas no plot
 out <- function(x) {
-  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | 
+           x > quantile(x, 0.75) + 1.5 * IQR(x))
 }
 # OBS: é o critério usado na identificação dos oultiers nos boxplots
 ```
@@ -65,8 +66,10 @@ Vamos agora desenhar um **boxplot bivariado** conforme @everitt_introduction_201
 Vamos usar a função `bvbox` do pacote `MVA` que acompanha o livro de @everitt_introduction_2011, para observar a relação entre as variáveis.
 ```{r}
 library(MVA)
-bvbox(swiss[,c(3,4)], xlab = colnames(swiss)[3], ylab = colnames(swiss)[4])
-text(x = swiss[out(swiss[,4]),3], y = swiss[out(swiss[,4]),4]-2.5, 
+bvbox(swiss[,c(3,4)], xlab = colnames(swiss)[3], 
+                      ylab = colnames(swiss)[4])
+text(x = swiss[out(swiss[,4]),3], 
+     y = swiss[out(swiss[,4]),4]-2.5, 
      rownames(swiss[out(swiss[,4]),]))
 ```
 
@@ -84,8 +87,8 @@ Vamos calcular $D^2_M$ para cada observação dos dados apresentados acima, e pl
 
 ```{r}
 maha <- mahalanobis(swiss[,3:4], # dados
-                    center = colMeans(swiss[,3:4]), # médias das variáveis
-                    cov = cov(swiss[,3:4])) # matriz de covariâncias
+          center = colMeans(swiss[,3:4]), # médias das variáveis
+          cov = cov(swiss[,3:4])) # matriz de covariâncias
 
 #calculando o cˆ2 para delimitar o limiar
 quant <- qchisq(0.1, 2, lower.tail = F)
@@ -106,16 +109,17 @@ Agora vamos expandir nosso exemplo usando todas as variáveis existentes nos dad
 Aqui eu não vou fazer os boxplots bivariados (você já sabe como faz), mas quero apenas mostrar o plot da distância de Mahalanobis para ver se, com mais variáveis, temos diferentes outliers detectados. 
 
 ```{r}
-maha2 <- mahalanobis(swiss, center = colMeans(swiss), cov = cov(swiss))
+maha2 <- mahalanobis(swiss, center = colMeans(swiss), 
+                     cov = cov(swiss))
 
-# para calcular o cˆ2, lembre-se que os graus de liberdade agora são 6
-quant2 <- qchisq(0.90, 6) # outra forma de pegar o quantil do chi-quadrado
+# lembre-se que os graus de liberdade agora são 6
+quant2 <- qchisq(0.90, 6)
 
 plot(1:length(maha2), maha2, xlab = "Observações", 
-     ylab= "Distância de Mahalanobis")
-abline(h=quant2, lty=2)
+     ylab = "Distância de Mahalanobis")
+abline(h = quant2, lty = 2)
 
-out2 <- maha2[maha2>quant2]
+out2 <- maha2[maha2 > quant2]
 text(c(2.5,15,34,38,40,44), out2, names(out2))
 ```
 
@@ -130,7 +134,7 @@ Outra diferença é que resultado é apresentado em um gráfico quantil-quantil 
 ```{r}
 library(MVN)
 
-outliers <- mvOutlier(swiss, alpha=0.90, method="quan") 
+outliers <- mvOutlier(swiss, alpha = 0.90, method = "quan") 
 # tente method="adj.quan"
 ```
 
