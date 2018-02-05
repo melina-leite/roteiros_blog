@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/356726/76e4126e20374b298c91705c49f76735
+bundleId: https://api.rpubs.com/api/v1/document/356726/76e4126e20374b298c91705c49f76735
+url: http://rpubs.com/melinatarituba/356726
+when: 1517872502.38246

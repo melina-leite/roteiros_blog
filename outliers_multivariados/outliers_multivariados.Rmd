@@ -23,24 +23,11 @@ opts_chunk$set(
 options(formatR.arrow = TRUE, width = 90)
 ```
 
-<!---
-DÚVIDAS PARA PROFA JULIA
-
-- QUAL O ALPHA GERALMENTE SE ESCOLHE PARA DETECTAR OUTLIERS? 0.9, 0.95, 0.5?
-
--  HÁ VANTAGENS EM SE USAR UMA ESTIMAÇÃO ROBUSTA PARA CALCULAR AS DISTÂNCIAS DE MAHALANOBIS, COMO FEITO NO mvOutlier()
-"Robust distances are estimated from minimum covariance determinant estimators rather than the sample covariance [29]."
-
-covr <- covMcd(data, alpha = alpha)
-mah <- mahalanobis(data, center = covr$center, cov = covr$cov, tol = tol)
-crt <- arw(x = data, m0 = covr$center, c0 = covr$cov, 
-            alpha = 0.025)$cn
---->
-
-
 Uma das maneiras mais comuns de se observar valores extremos (_outliers_) em nossos dados é usar o gráfico de  [boxplot](https://pt.wikipedia.org/wiki/Diagrama_de_caixa) em cada variável de interesse (veja no link como o boxplot é usado para classificar valores extremos).
 
-Entretanto, quando fazemos algumas análises multivariadas e assumimos que os dados vêm de uma população com distribuição **normal multivariada**, nós precisamos olhar todas as varáveis de uma vez e daí os boxplots univariados não nos servem mais. Detectar valores extremos em observações univariadas é diferente de detectá-los de maneira multivariada e o que era um _outlier_ em uma variável pode não ser mais num contexo multivariado e vice-versa.
+Entretanto, quando temos dados multivariados é interessante observar os valores extremos de maneira conjunta, isto é, levando em consideração todas as variáveis dos dados. Neste caso, os boxplots univariados não nos servem mais[^1]. Detectar valores extremos em observações univariadas é diferente de detectá-los de maneira multivariada e o que era um _outlier_ em uma variável pode não ser mais num contexo multivariado e vice-versa.
+
+[^1]: eles também não servem se a quantidade de dados for muito grande, veja [esse roteiro](http://rpubs.com/melinatarituba/351028) sobre gráficos alternativos aos boxplots nessa situação.
 
 Neste roteiro,  apresento os **boxplots bivariados** do pacote `MVA`, descritos em @everitt_introduction_2011 e o uso da **Distância de Mahalanobis** de cada observação ao centróide dos dados para diagnóstico de valores extremos.
 
@@ -48,9 +35,9 @@ Neste roteiro,  apresento os **boxplots bivariados** do pacote `MVA`, descritos 
 
 Vamos usar um exemplo com apenas duas variáveis para facilitar a inspeção visual. 
 
-Escolhemos duas variáveis do conjunto de dados `swiss` do pacote `datasets`[^1] e vamos primeiro inspecioná-las separadamente com os boxplots univariados.
+Escolhemos duas variáveis do conjunto de dados `swiss` do pacote `datasets`[^2] e vamos primeiro inspecioná-las separadamente com os boxplots univariados.
 
-[^1]: que não precisa ser carregado porque já vem junto como R base.
+[^2]: que não precisa ser carregado porque já vem junto como R base.
 
 ```{r}
 # para determinar as observações outiers a serem nomeadas no plot
@@ -83,9 +70,9 @@ text(x = swiss[out(swiss[,4]),3], y = swiss[out(swiss[,4]),4]-2.5,
      rownames(swiss[out(swiss[,4]),]))
 ```
 
-No boxplot bivariado, detectamos os mesmos _outliers_ encontrados para `Education`.
+No boxplot bivariado, detectamos os mesmos _outliers_ encontrados apenas em `Education`.
 
-A desvantagem dos boxplots bivariados é que eles avaliam os outliers apenas para duas variáveis por vez. A seguir veremos uma forma mais geral de se avaliar os valores extremos multivariados.
+A desvantagem dos boxplots bivariados é que eles avaliam os outliers apenas para duas variáveis por vez e geralmente temos mais do que duas variáveis nos nossos dados. A seguir veremos uma forma mais geral de se avaliar os valores extremos multivariados.
 
 # Usando a distância de Mahalanobis
 
@@ -93,7 +80,7 @@ A **distância de Mahalanobis** ($D^2_M$) é uma medida de distância entre as o
 
 O [cálculo da distância de Mahalanobis](https://en.wikipedia.org/wiki/Mahalanobis_distance) leva em consideração a correlação entre as variáveis, e seu valor $D^2_M$ pode ser pensado como um resíduo multivariado para a observação $x$. $D^2_M$ é uma medida de quão longe a obervação $x$ está do centro da distribuição de todos os valores, levando em consideração todas as variáveis consideradas e suas covariâncias (@manly_multivariate_2017). Um valor alto de $D^2_M$ para a observação $x$ pode indicar um possível _outlier_ multivariado, se excluímos a possibilidade de erro de digitação/registro ou que a observação seja de outra distribuição. 
 
-Vamos calcular $D^2_M$ para cada observação dos dados apresentados acima, e plotar estas distâncias. Um critério para o diagnóstico dos outliers a partir da distância de Mahalanobis é verificar se a distância calculada está acima de um limiar $c^2$, que nada mais é do que a estatística do Qui-quadrado ($\chi^2$) calculada para um valor de $p$ escolhido. No exemplo abaixo, eu escolhi um $p$ de 5% e fui na distribuição de ($\chi^2$) com 2 graus de liberdade (g.l. = número de variáveis sendo analisadas) saber qual é o quantil e desenhei a linha pontilhada no gráfico com este valor. 
+Vamos calcular $D^2_M$ para cada observação dos dados apresentados acima, e plotar estas distâncias. Um critério para o diagnóstico dos outliers a partir da distância de Mahalanobis é verificar se a distância calculada está acima de um limiar $c^2$, que nada mais é do que a estatística do Qui-quadrado ($\chi^2$) calculada para um valor de probabilidade escolhido. No exemplo abaixo, eu escolhi um $\alpha$ de 10% e fui na distribuição de ($\chi^2$) com 2 graus de liberdade (g.l. = número de variáveis sendo analisadas) saber qual é o quantil e desenhei a linha pontilhada no gráfico com este valor. 
 
 ```{r}
 maha <- mahalanobis(swiss[,3:4], # dados
@@ -101,17 +88,17 @@ maha <- mahalanobis(swiss[,3:4], # dados
                     cov = cov(swiss[,3:4])) # matriz de covariâncias
 
 #calculando o cˆ2 para delimitar o limiar
-quant <- qchisq(0.05, 2, lower.tail = F)
+quant <- qchisq(0.1, 2, lower.tail = F)
 
 plot(1:length(maha), maha, xlab = "Observações", 
      ylab= "Distância de Mahalanobis")
 abline(h=quant, lty=2)
 
 out <- maha[maha>quant]
-text(c(42,46,47)-7, out, names(out))
+text(c(42,44,46,48)-7, out, names(out))
 ```
 
-Desta forma, para o critério usando a distância de Mahalanobis, apenas 3 observações foram consideradas _outliers_ bivariados. Este critério está dizendo que as 3 observações com maior distância tem pouca probabilidade de serem advindas da população com distribuição normal bivariada assumida nos dados.
+Desta forma, para o critério usando a distância de Mahalanobis, 4 observações foram consideradas _outliers_ bivariados. Este critério está dizendo que as 4 observações com maior distância tem pouca probabilidade de serem advindas da população com distribuição normal bivariada assumida nos dados.
 
 # Diagnosticando _outliers_ multivariados
 
@@ -122,29 +109,28 @@ Aqui eu não vou fazer os boxplots bivariados (você já sabe como faz), mas que
 maha2 <- mahalanobis(swiss, center = colMeans(swiss), cov = cov(swiss))
 
 # para calcular o cˆ2, lembre-se que os graus de liberdade agora são 6
-quant2 <- qchisq(0.95, 6)
+quant2 <- qchisq(0.90, 6) # outra forma de pegar o quantil do chi-quadrado
 
 plot(1:length(maha2), maha2, xlab = "Observações", 
      ylab= "Distância de Mahalanobis")
 abline(h=quant2, lty=2)
 
 out2 <- maha2[maha2>quant2]
-text(c(6,19,47)-4, out2, names(out2))
+text(c(2.5,15,34,38,40,44), out2, names(out2))
 ```
 
+Com mais variáveis, tivemos diferentes observações detectadas como _outliers_ e por isso a importância de se analisar os valores extremos em dados multivariados de maneira conjunta!
 
-Com mais variáveis, tivemos diferentes observações detectadas como _outliers_ (exceto `V. De Geneve` que foi detectada em todos os métodos) e por isso a importância de se analisar os valores extremos em dados multivariados de maneira conjunta!
+## Usando pacote `MVN`
 
-## Usando pacote `MVN
-
-O pacote `MVN` possui uma função que também detecta _outliers_ multivariados a partir da **distância de Mahalanobis**. Esse pacote usa dois métodos chamados de _robustos_ (ver detales [aqui](https://pdfs.semanticscholar.org/5508/25b2681f1cc067c66df6ddbd62c74b441869.pdf?_ga=2.25175998.286279602.1517010562-1528935492.1517010562)) para calcular a distância de Mahalanobis (a distância de Mahalanobis Robusta e a Ajustada), e portanto dão resultados um pouco diferentes do que fizemos anteriormente. 
+O pacote `MVN` possui uma função que também detecta _outliers_ multivariados a partir da **distância de Mahalanobis**. Esse pacote usa dois métodos _robustos_ (ver detales [aqui](https://pdfs.semanticscholar.org/5508/25b2681f1cc067c66df6ddbd62c74b441869.pdf?_ga=2.25175998.286279602.1517010562-1528935492.1517010562)) para calcular a distância de Mahalanobis (a distância de Mahalanobis Robusta e a Ajustada), e portanto dão resultados um pouco diferentes do que fizemos anteriormente. 
 
 Outra diferença é que resultado é apresentado em um gráfico quantil-quantil (_qqplot_), com um dos eixos sendo a $D^2_M$ e o outro os quantis de uma distribuição $\chi^2$. 
 
 ```{r}
 library(MVN)
 
-outliers <- mvOutlier(swiss, alpha=0.95, method="quan") 
+outliers <- mvOutlier(swiss, alpha=0.90, method="quan") 
 # tente method="adj.quan"
 ```
 
