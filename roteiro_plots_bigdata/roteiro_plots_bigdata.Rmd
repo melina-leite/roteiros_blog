@@ -25,8 +25,6 @@ library(ggplot2); library(cowplot); library(lvplot); library(ggridges)
 
 Recentemente, ao tentar fazer gráficos exploratórios de um grande conjunto de dados (~300 mil observações), fiz uma rápida busca na internet e achei alternativas interessantes aos histogramas de frequência e densidade e também aos famosos boxplots. Abaixo, apresento exemplos do que encontrei.
 
-Lembrando que o material deste roteiro (arquivo .Rmd) está disponível [neste repositório do GitHub](https://github.com/melina-leite/roteiros_blog).
-
 Nesse roteiro, todos os gráficos utilizarão como base o pacote `ggplot2`, e algumas manipulações dos dados com o pacote `dplyr`. Ah, e eu também uso o pacote `cowplot`para tornar os plots do ggplot estéticamente melhores.
 
 ```{r, eval=F}
@@ -36,7 +34,7 @@ library(cowplot)
 library(lvplot)
 ```
 
-Usarei o conjunto de dados `ontime` do pacote `lvplot`, que detalha o desempenho no horário dos vôos nacionais dos EUA em janeiro de 2015, veja uma amostra dos dados na Tabela \@ref(tab:dados).
+Vamos usar o conjunto de dados `ontime` do pacote `lvplot`, que detalha o desempenho no horário dos vôos nacionais dos EUA em janeiro de 2015, veja uma amostra dos dados na Tabela \@ref(tab:dados).
 
 ```{r dados, echo=F}
 kable(ontime[1:10, c(1,2,3,5,7,8,9)], booktabs = TRUE,
@@ -69,7 +67,7 @@ Como os histogramas separados em cada plot, às vezes fica difícil compará-los
 
 # Alternativa 1: Ridgeline plots
 
-Uma alternativa ao histograma de densidade são os ridgeline plots do pacote `ggridges` que são gráficos parcialmente sobrepostos criando a impressão de uma cadeia de montanhas (Figura \@ref(fig:ridge). São gráficos particularmente bons para visualizar as mudanças na distribuição no tempo e espaço, pois permite uma comparação visualmente mais fácil entre os grupos. Não deixe de olhar a vinheta do pacote para exemplos de customização.
+Uma alternativa ao histograma de densidade são os ridgeline plots do pacote `ggridges` que são gráficos parcialmente sobrepostos criando a impressão de uma cadeia de montanhas (Figura \@ref(fig:ridge)). São gráficos particularmente bons para visualizar as mudanças na distribuição no tempo e espaço, pois permite uma comparação visualmente mais fácil entre os grupos. Não deixe de olhar a vinheta do pacote para exemplos de customização.
 
 Neste exemplo, primeiro eu ordeno as companhias aéreas por sua mediana[^2].
 
@@ -102,7 +100,7 @@ rplot + geom_density_ridges2(stat="binline")
 
 # Alternativa 2: violin plots
 
-Outra alternativa, mais parecida com boxplots (tratados a seguir) é o violin plot (do próprio pacote do `ggplot2`), que é um plot de densidade espelhado (um lado é simétrico ao outro) mas disposto como se fosse um boxplot (Figura \@ref(fig:vio).
+Outra alternativa, mais parecida com boxplots (tratados a seguir) é o violin plot (do próprio pacote do `ggplot2`), que é um plot de densidade espelhado (lados simétricos) mas disposto como se fosse um boxplot (Figura \@ref(fig:vio)).
 
 ```{r vio, fig.cap="Um plot alternativo que combina a forma de boxplots com a informação de histogramas de densidade _em pé_."}
 vio <- ontime %>% mutate(group = reorder(UniqueCarrier, TaxiOut, median)) %>%
@@ -119,7 +117,7 @@ vio + geom_violin() + geom_boxplot(width=0.4, outlier.alpha = 0)
 
 # Boxplots
 
-Os boxplots deixam de ser úteis quando o volume de dados aumenta (Hofmann et al. 2017), pois o que eles consideram valores extremos (outliers) aumenta linearmente com o tamanho amostral (Figura \@ref(fig:boxplot). E é por isso que no violin plot nós removemos os outliers do gráfico. Ainda sim é um dos gráficos mais utilizados para se observar distribiução dos dados (veja [aqui](http://had.co.nz/stat645/project-03/boxplots.pdf) sobre 40 anos de história do boxplot). 
+Os boxplots deixam de ser úteis quando o volume de dados aumenta (Hofmann et al. 2017), pois o que eles consideram valores extremos (outliers) aumenta linearmente com o tamanho amostral (Figura \@ref(fig:boxplot)). E é por isso que no violin plot nós removemos os _outliers_ do gráfico. Ainda sim é um dos gráficos mais utilizados para se observar distribuição dos dados (veja [aqui](http://had.co.nz/stat645/project-03/boxplots.pdf) sobre 40 anos de história do boxplot). 
 
 ```{r boxplot, fig.cap="Um boxplot para muitos dados fica poluído com tantos outliers."}
 ontime %>% mutate(group = reorder(UniqueCarrier, TaxiOut, median)) %>%
@@ -142,7 +140,7 @@ Abaixo alguns exemplos de uso dos _lvplots_, com algumas opções para a largura
 
 3. `height`: torna a _largura_ de cada caixa proporcional ao número de pontos nela.
 
-```{r lvarea, fig.cap="Um exemplo de lvplot com largura da caixa `height."}
+```{r lvarea, fig.cap="Um exemplo de lvplot com largura da caixa height."}
 library(lvplot)
 library(patchwork) # para fazer painel com vários plots
 lv <- ontime %>% mutate(group = reorder(UniqueCarrier, TaxiOut, median)) %>%
@@ -161,14 +159,10 @@ lv + geom_lv(aes(fill=..LV..), width.method = "linear") +
 
 Eu particularmente acho o gráfico com largura `height` o mais bonito[^3]!
 
-[^3]: Apesar de ainda achar as cores padrão não tão bonitas.
+[^3]: Apesar de ainda achar as cores padrão não tão bonitas, mas com umas linhas a mais de código resolvemos esse problema.
 
 Compare a diferença no número de valores extremos encontrados no boxplot comum e no lvplot!
-
-
-
 
 # Referências
 
 Hofmann, H., Wickham, H., Kafadar, K., 2017. Letter-Value Plots: Boxplots for Large Data. Journal of Computational and Graphical Statistics 26, 469–477. https://doi.org/10.1080/10618600.2017.1305277 [link alternativo](http://vita.had.co.nz/papers/letter-value-plot.html)
-

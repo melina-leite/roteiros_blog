@@ -119,8 +119,6 @@ t.test(L_humerous ~ Survivorship, data = pardais, var.equal = TRUE)
 t.test(L_keel_sternum ~ Survivorship, data = pardais, var.equal = TRUE)
 ```
 
-
-
 ## Comparando as médias de todas as variáveis para sobrevivente e não-sobreviventes
 
 Para essa comparação vamos utilizar o teste T^2^ de Hotelling, que é uma generalização da estatística t.
