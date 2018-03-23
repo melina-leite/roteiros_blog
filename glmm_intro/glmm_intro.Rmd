@@ -27,9 +27,9 @@ library(ggplot2); library(cowplot)
 dados <- read.table("RIKZ.txt", header = TRUE, row.names = 1, as.is = TRUE)
 ```
 
-Este roteiro é uma continuação do roteiro de [Modelos Mistos Lineares](http://rpubs.com/melinatarituba/309285) (LMM), o qual deve ser feito e entendido bem antes de continuar. Também é importante que você já tenha estudado o roteiro de [Modelos Lineares Generaliados](http://labtrop.ib.usp.br/doku.php?id=cursos:planeco:planeco:roteiro:10-glm) (GLMs).
+Este roteiro é uma continuação do roteiro de [Modelos Mistos Lineares](http://rpubs.com/melinatarituba/309285) (LMM), o qual deve ser feito e entendido bem antes de continuar. Também é importante que você já tenha estudado[Modelos Lineares Generaliados](http://labtrop.ib.usp.br/doku.php?id=cursos:planeco:planeco:roteiro:10-glm) (GLMs).
 
-Ao final do roteiro de LMMs nós obsevamos que os resíduos do modelo final não atendiam às premissas de homogeneidade de variâncias e normalidade do resíduos. No próprio roteiro, lembramos que a riqueza de espécies (número de espécies no local) é um dado de contagem, (valores sempre inteiros - discretos) e, portanto, não poderíamos utilizar um modelo que tem como premissa a distribuição normal (valores contínuos). Logo, precisaremos utilizar um modelo com uma distriuição diferente da normal. Neste exemplo, vamos recorrer a um GLM com distribuição de poisson - que lida com os dados de contagem.
+Ao final do roteiro de LMMs nós obsevamos que os resíduos do modelo final não atendiam às premissas de homogeneidade de variâncias e normalidade do resíduos. No próprio roteiro, lembramos que a riqueza de espécies (número de espécies no local) é um dado de contagem (valores sempre inteiros - discretos) e, portanto, não poderíamos utilizar um modelo que tem como premissa a distribuição normal (valores contínuos). Logo, precisaremos utilizar um modelo com uma distriuição diferente da normal. Neste exemplo, vamos recorrer a um GLM com distribuição de poisson - que lida com os dados de contagem.
 
 
 # Voltando aos dados da riqueza de espécies das praias
@@ -53,6 +53,23 @@ ggplot(dados, aes(x=NAP, y=Richness, col=as.factor(Beach))) + geom_point()
 ```
 
 Perceba que os pontos vão ficando menos dispersos à medida que os valores de riqueza diminuem (e os de `NAP` aumentam).
+
+Então, mãos à massa! Carregue os dados para o R. Os dados estão disponíveis no site do livro do Zuur et al. (2009) (baixe aqui o zip com os dados - "data files").
+
+```{r}
+dados <- read.table("RIKZ.txt", header = TRUE, row.names = 1, as.is = TRUE)
+head(dados) #observando as primeiras linhas de dados
+
+# modificando a variável Exposure que será usada posteriormente
+#renomeando a praia 2 de Exposure = 8 para Exposure = 10
+dados$Exposure[dados$Exposure == 8] <- 10
+
+# criando uma nova coluna com a variável exposure fator
+dados$fExposure[dados$Exposure == 10] <- "low"
+dados$fExposure[dados$Exposure == 11] <- "high"
+dados$fExposure <- as.factor(dados$fExposure)
+```
+
 
 Agora, vamos modificar o modelo do roteiro de LMM apenas em relação à distribuição de probabilidades dos resíduos do modelo. Operacionalmente isso é bastante simples, basta usar a função `glmer()` do pacote `lme4` com a mesma formulação do modelo usada anteriormente, explicitando a distribuição (`family = "poisson"`).
 
@@ -116,11 +133,11 @@ Podemos ver nessa figura a predição do nosso modelo em relação aos parâmetr
 
 Compare este gráfico ao gráfico das predições no roteiro de LMM. Qual parece se ajustar melhor aos dados?
 
-Já ajustamos nosso primeiro GLMMM! Porém nossas análises tem mais uma variável preditora que precisa entrar no modelo, e também podemos pensar em mais de uma possibilidade de estrutura de efeitos aleatórios. Então, o próximo passo é incorporar a variável aleatória `Exposure` e fazer a escolha dos efeitos aleatórios antes de prosseguir com a seleção de modelos.
+Já ajustamos nosso primeiro GLMMM! Porém nossas análises tem mais uma variável preditora que precisa entrar no modelo, e também podemos pensar em mais de uma possibilidade de estrutura de efeitos aleatórios. Então, o próximo passo é incorporar a variável fixa `Exposure` e fazer a escolha dos efeitos aleatórios antes de prosseguir com a seleção de modelos.
 
 ## Escolha dos efeitos aleatórios
 
-Os passos para a escolha dos efeitos aleatórios no GLMM, quando temos mais de uma possibilidade de efeitos aleatórios, são iguais aos apresentados no roteiro de LMM. A únca diferença é que não há facilmente dinsponível a implementação de Máxima Verossimilhança Restrita (REML) para modelos GLMM. Logo usamos a Máxima Verossimilhança, mesmo que possa ser considerada enviesada para as estimativas das variâncias.
+Os passos para a escolha dos efeitos aleatórios no GLMM, quando temos mais de uma possibilidade de efeitos aleatórios, são iguais aos apresentados no roteiro de LMM. A única diferença é que não há ferramentas computacionais facilmente disponíveis para implementação de Máxima Verossimilhança Restrita (REML) para modelos GLMM. Logo usamos a Máxima Verossimilhança, mesmo que possa ser considerada enviesada para as estimativas das variâncias.
 
 
 1. Criando o modelo completo, com todos os efeios fixos a serem utilizados. Aqui incluimos a variável `Exposure` e  a interação entre `NAP` e `Exposure`. Nosso modelo é:
@@ -130,9 +147,10 @@ Richness ~ Exposure * NAP + efeito(s) aleatório(s)
 ```
 
 
-2. Incluíndo os efeitos aleatórios plausíveis. No nosso exemplo, escolhemos duas possibilidades de efeito aleatório, variações no intercepto entre praias (`(1|Beach)`) e a interação entre praia e `NAP`, resultando também na variação de inclinação entre praias (`(NAP|Beach)`):
+2. Incluíndo os efeitos aleatórios plausíveis. No nosso exemplo, escolhemos duas possibilidades de efeito aleatório, variações no intercepto entre praias (`(1|Beach)`) e a interação entre praia e `NAP`, resultando também na variação de inclinação entre praias (`(NAP|Beach)`). Além disso, colocamos para "competir" um modelo glm sem efeitos aleatórios.
 
 ```{r}
+m0 <- glm(Richness ~ fExposure*NAP, data = dados)
 m1 <- glmer(Richness ~ as.factor(Exposure) * NAP + (1|Beach), data = dados,
             family = poisson)
 m2 <- glmer(Richness ~ as.factor(Exposure) * NAP + (NAP|Beach), data = dados,
@@ -145,7 +163,7 @@ m2 <- glmer(Richness ~ as.factor(Exposure) * NAP + (NAP|Beach), data = dados,
 # usamos a função AICctab do pacote bbmle
 library(bbmle)
 
-AICctab(m1,m2, base = T, weights = T)
+AICctab(m0, m1,m2, base = T, weights = T)
 ```
 
 Bom, agora sabemos que a melhor estrutura de efeito aleatório é apenas a variação de intercepto entre as praias. Assim, podemos prosseguir com a verificação dos efeitos fixos através da seleção de modelos pela tabela de ANOVA.
@@ -158,24 +176,24 @@ Comparando modelo com interação entre `Exposure` (lembrando que estamos usando
 
 ```{r}
 # modelo com interação entre Exposure e NAP
-m3 <- glmer(Richness ~ as.factor(Exposure) * NAP + (1|Beach), 
+m3 <- glmer(Richness ~ fExposure * NAP + (1|Beach), 
             data = dados, family="poisson")
 
 # modelo sem interação entre exposure e NAP
-m4 <- glmer(Richness ~ as.factor(Exposure) + NAP + (1|Beach), 
+m4 <- glmer(Richness ~ fExposure + NAP + (1|Beach), 
             data = dados, family="poisson")
 ```
 
 E aplicamos a função `anova` nos nossos modelos aninhados:
 ```{r}
-anova(m3,m4, "LRT")
+anova(m3,m4)
 ```
 
 Como o resultado da comparação entre os modelos não foi significativo, ou seja, o modelo com interação não é significativamente diferente do modelo sem interação. Nós ficamos então com o modelo sem interação e continuamos a compara ele com modelos com apenas uma das variáveis preditoras por vez:
 
 ```{r}
 # removendo a variável NAP
-m5 <- glmer(Richness ~ as.factor(Exposure) + (1|Beach), 
+m5 <- glmer(Richness ~ fExposure + (1|Beach), 
             data = dados, family="poisson")
 anova(m4, m5)
 ```
@@ -201,12 +219,18 @@ m7 <- glmer(Richness ~ 1 + (1|Beach), data = dados, family="poisson")
 anova(m4,m7)
 ```
 
-Então podemos concluir que tanto `Exposure` quanto `NAP` influenciam na riqueza de espécies, mas de maneira aditiviva.
+Então podemos concluir que tanto `Exposure` quanto `NAP` influenciam na riqueza de espécies, mas de maneira aditiva.
+
+Vamos observar o _output_ deste modelo:
+
+```{r}
+summary(m4)
+```
 
 
 # Diagnósticos dos modelos
 
-A forma de se fazer o diagnóstico de um GLMM é ligeiramente diferente de um LMM, isso porque não esperamos normalidade nem homocedasticidade dos dados, e mesmo de um GLM, já que residuos escalonados como o resíduo deviance e de Pearson podem não informar bem se o modelo está mal espeficifado. Sugiro fortemente olhar [este roteiro do pacote `DHARMa`](https://theoreticalecology.wordpress.com/2016/08/28/dharma-an-r-package-for-residual-diagnostics-of-glmms/) que explica bem os problemas de usar técnicas de diagnóstico usuais em LMM e GLM para um GLMM e traz soluções bem interessantes!
+A forma de se fazer o diagnóstico de um GLMM é ligeiramente diferente de um LMM, isso porque não esperamos normalidade nem homocedasticidade dos dados, e mesmo de um GLM, já que residuos escalonados como o resíduo deviance e de Pearson podem não informar bem se o modelo está mal especificado. Sugiro fortemente olhar [este roteiro do pacote `DHARMa`](https://theoreticalecology.wordpress.com/2016/08/28/dharma-an-r-package-for-residual-diagnostics-of-glmms/) que explica bem os problemas de usar técnicas de diagnóstico usuais em LMM e GLM para um GLMM e traz soluções bem interessantes!
 
 Nós vamos seguir o diagnóstico proposto por Florian Hartig usando o pacote `DHARMa`. Essa abordagem é baseada em simulações para criar resíduos escalonados, com valores entre 0 e 1, interpretáveis de um modelo GLMM. Aqui, os detalhes estatísticos e teóricos da forma de realizar estas simulações e criar os resíduos escalonados vai ficar de lado (mas está nas referências do pacote `DHARMa`) para que possamos focar em como olhar os gráficos produzidos e inerpretá-los. 
 
@@ -284,7 +308,8 @@ Finalmente, vamos plotar um gráfico com os dados e as curvas de predição para
 # Primeiro criamos um novo conjunto de dados com as características no antigo
 novo <- expand.grid(Beach = unique(dados$Beach),
                     NAP = seq(-1.3,2.2,0.5))
-novo$Exposure <- rep(c(10,8,11,11,10,11,11,10,10),8)
+novo$fExposure <- rep(c("low", "low", "high", "high", "low",
+                        "high", "high", "low", "low"),8)
 
 #agora calculamos os valores preditos para esse novo conjunto de dados
 preditos <- predict(m4, newdata = novo, type="response")
@@ -296,7 +321,7 @@ dados.preditos <- data.frame(pred = preditos, novo)
 ```{r}
 #predição para todas as praias, ingorando os efeitos aleatórios
 novis <- expand.grid(NAP = seq(-1.3,2.2,0.5),
-                     Exposure = unique(dados$Exposure))
+                     fExposure = unique(dados$fExposure))
 pred2 <- predict(m4, newdata = novis, type="response", re.form=NA)
 dados.pred2 <- data.frame(pred = pred2, novis)
 ```
@@ -308,15 +333,14 @@ ggplot(data = dados, aes(x = NAP, y = Richness,        # dados e eixos
                          color = as.factor(Beach))) + 
   geom_point(size = 3, shape = 19) +                   # colocando os pontos
   geom_line(data = dados.pred2, aes(y = pred, x = NAP, 
-                  color = as.factor(Exposure)), show.legend = F, size=1.5) +                    # curva média
+                  color = fExposure), show.legend = F, size=1.5) +                    # curva média
   geom_line(data = dados.preditos, aes(y = pred, x = NAP, 
                             col = as.factor(Beach)))  + # curva para cada praia
  theme(legend.position ="none")
 
-abline()
 ```
 
-Repare que agora as curvas para cada praia estão agrupadas ao redor das curvas de cada `Exposure`, justamente porque cada praia é classificada com uma categori de `Exposure`. 
+Repare que agora as curvas para cada praia estão agrupadas ao redor das curvas de cada `Exposure`, justamente porque cada praia é classificada com uma categoria de `Exposure`. 
 
 
 # Referências e recomendações
