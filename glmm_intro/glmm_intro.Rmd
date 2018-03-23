@@ -1,0 +1,335 @@
+---
+title: "Introdução aos Modelos Mistos Generalizados"
+author: "Melina Leite"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+    fig_heigth: 20
+  pdf_document:
+    highlight: tango
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, warning = F, fig.align = "center", message = F,
+                      error = F)
+library(knitr); library(lme4); library(bbmle); 
+library(ggplot2); library(cowplot)
+```
+
+```{r, echo=F}
+dados <- read.table("RIKZ.txt", header = TRUE, row.names = 1, as.is = TRUE)
+```
+
+Este roteiro é uma continuação do roteiro de [Modelos Mistos Lineares](http://rpubs.com/melinatarituba/309285) (LMM), o qual deve ser feito e entendido bem antes de continuar. Também é importante que você já tenha estudado o roteiro de [Modelos Lineares Generaliados](http://labtrop.ib.usp.br/doku.php?id=cursos:planeco:planeco:roteiro:10-glm) (GLMs).
+
+Ao final do roteiro de LMMs nós obsevamos que os resíduos do modelo final não atendiam às premissas de homogeneidade de variâncias e normalidade do resíduos. No próprio roteiro, lembramos que a riqueza de espécies (número de espécies no local) é um dado de contagem, (valores sempre inteiros - discretos) e, portanto, não poderíamos utilizar um modelo que tem como premissa a distribuição normal (valores contínuos). Logo, precisaremos utilizar um modelo com uma distriuição diferente da normal. Neste exemplo, vamos recorrer a um GLM com distribuição de poisson - que lida com os dados de contagem.
+
+
+# Voltando aos dados da riqueza de espécies das praias
+
+Vamos voltar ao exemplo do livro do Zuur et al. (2009), onde queremos entende se a riqueza de espécies da macro-fauna em 9 praias na costa da Holanda é influenciado pela altura da estação de amostragem em relação à altura média da maré (`NAP`) ((vamos começar com o modelo mais simples)). As unidades amostrais estão aninhadas dentro das praias, ou seja, temos 5 valores por praia que não podem ser consideradas independentes, e por isso incluímos no nosso modelo a praia como um efeito aleatório.
+
+Dados de contagem, ou seja, o número de espécies em cada amostra, são geralmente modelados com a distribuição de **Poisson**, que assume também que a média é igual à variância. Ou seja, se a média aumenta, a variância também. 
+
+No nosso exemplo, essa relação variância-média pode ser visualizada olhando o gráfico de dispersão dos dados:
+
+```{r, echo=FALSE}
+#usando o pacote ggplot2 e cowplot (estética do gráfico)
+#não esqueça de instalar os pacotes antes de carregar:
+#install.packages("ggplot2")
+#install.packages("cowplot")
+
+library(ggplot2)
+library(cowplot)
+
+ggplot(dados, aes(x=NAP, y=Richness, col=as.factor(Beach))) + geom_point()
+```
+
+Perceba que os pontos vão ficando menos dispersos à medida que os valores de riqueza diminuem (e os de `NAP` aumentam).
+
+Agora, vamos modificar o modelo do roteiro de LMM apenas em relação à distribuição de probabilidades dos resíduos do modelo. Operacionalmente isso é bastante simples, basta usar a função `glmer()` do pacote `lme4` com a mesma formulação do modelo usada anteriormente, explicitando a distribuição (`family = "poisson"`).
+
+```{r}
+mod.riq <- glmer(Richness ~ NAP +  (1 | Beach), data = dados, 
+                family = "poisson")
+```
+
+Vamos inspecionar o modelo:
+```{r}
+summary(mod.riq)
+```
+
+Lembrando que, como num GLM, os valores dos coeficientes agora estão na escala da função de ligação, que para a distribuição de poisson é a função log.
+
+Para fazer o gráfico de nosso modelo ajustado, com a "reta" (predição) dos efeitos fixos e as "retinhas" preditas para cada praia, vamos primeiro calcular os valores preditos para cada praia[^1] de acordo com os valores de `NAP`. Mas agora temos que nos atentar que queremos fazer a predição das médias de riqueza em cada NAP na escala da variável resposta e não da função de ligação usada no modelo. E, operacionalmente isso também é simples, basta colocar o argumento `type = "response"` na função `predict()` que teremos os valores preditos já na escala da variável resposta (riqueza de espécies) para cada praia. 
+
+[^1]: esse valor predito é o que se considera ingênuo (_naive_), quando não estamos incorporando a variabilidade dos efeitos aletórios. Como introdução é válido calcular os valores preditos desta maneira, mas para se aprofundar no tema sugerimos ler Bates et al. (2014) para formas mais apropridades de predição de médias e intervalos de confiança estimados para modelos mistos.
+
+```{r}
+#predições para cada praia separadamente:
+# Primeiro criamos um novo conjunto de dados com as características no antigo
+novo <- expand.grid(Beach = unique(dados$Beach),
+                    NAP = seq(-1.3,2.2,0.5))
+
+#agora calculamos os valores preditos para esse novo conjunto de dados
+preditos <- predict(mod.riq, newdata = novo, type="response")
+
+#guardando tudo em um novo data.frame
+dados.preditos <- data.frame(pred = preditos, novo)
+```
+
+Para construir nossa curva média da predição da riqueza de espécies pelo `NAP`, use o argumento `re.form=NA`, assim a função vai ignorar os efeitos aleatórios.
+```{r}
+#predição para todas as praias, ingorando os efeitos aleatórios
+novis <- expand.grid(NAP = seq(-1.3,2.2,0.5))
+pred2 <- predict(mod.riq, newdata = novis, type="response", re.form=NA)
+dados.pred2 <- data.frame(pred = pred2, novis)
+```
+
+Agora podemos plotar os dados com o ajuste do nosso modelo:
+
+```{r}
+#usando o pacote ggplot2 e cowplot (estética do gráfico)
+#não esqueça de instalar os pacotes antes de carregar:
+#install.packages("ggplot2")
+#install.packages("cowplot")
+
+library(ggplot2)
+library(cowplot)
+ggplot(data = dados, aes(x = NAP, y = Richness,   # dados e eixos
+                         color = as.factor(Beach))) + 
+  geom_point(size = 3, shape = 19) +                   # colocando os pontos
+  geom_line(data = dados.pred2, aes(y = pred, x = NAP ), 
+            col= "black", size=2) +                    # curva média
+  geom_line(data = dados.preditos, aes(y = pred, x = NAP, 
+                            col = as.factor(Beach)))   # curva para cada praia
+```
+
+Podemos ver nessa figura a predição do nosso modelo em relação aos parâmetros fixos (curva em preto) e as predições para cada praia separadamente.
+
+Compare este gráfico ao gráfico das predições no roteiro de LMM. Qual parece se ajustar melhor aos dados?
+
+Já ajustamos nosso primeiro GLMMM! Porém nossas análises tem mais uma variável preditora que precisa entrar no modelo, e também podemos pensar em mais de uma possibilidade de estrutura de efeitos aleatórios. Então, o próximo passo é incorporar a variável aleatória `Exposure` e fazer a escolha dos efeitos aleatórios antes de prosseguir com a seleção de modelos.
+
+## Escolha dos efeitos aleatórios
+
+Os passos para a escolha dos efeitos aleatórios no GLMM, quando temos mais de uma possibilidade de efeitos aleatórios, são iguais aos apresentados no roteiro de LMM. A únca diferença é que não há facilmente dinsponível a implementação de Máxima Verossimilhança Restrita (REML) para modelos GLMM. Logo usamos a Máxima Verossimilhança, mesmo que possa ser considerada enviesada para as estimativas das variâncias.
+
+
+1. Criando o modelo completo, com todos os efeios fixos a serem utilizados. Aqui incluimos a variável `Exposure` e  a interação entre `NAP` e `Exposure`. Nosso modelo é:
+
+```{r, eval=F}
+Richness ~ Exposure * NAP + efeito(s) aleatório(s)
+```
+
+
+2. Incluíndo os efeitos aleatórios plausíveis. No nosso exemplo, escolhemos duas possibilidades de efeito aleatório, variações no intercepto entre praias (`(1|Beach)`) e a interação entre praia e `NAP`, resultando também na variação de inclinação entre praias (`(NAP|Beach)`):
+
+```{r}
+m1 <- glmer(Richness ~ as.factor(Exposure) * NAP + (1|Beach), data = dados,
+            family = poisson)
+m2 <- glmer(Richness ~ as.factor(Exposure) * NAP + (NAP|Beach), data = dados,
+            family = poisson)
+```
+
+3. Seleção de modelos por AIC. Colocamos estes modelos ajustados para "concorrer" usando o Critério de Informação de Akaike (AIC), como um critério para a seleção de modelos (menor AIC, melhor modelo) (ver Burnham & Anderson 2002). Como temos poucos dados vamos usar o AICc - que é uma correção do AIC para pequeno tamanho amostral.
+
+```{r}
+# usamos a função AICctab do pacote bbmle
+library(bbmle)
+
+AICctab(m1,m2, base = T, weights = T)
+```
+
+Bom, agora sabemos que a melhor estrutura de efeito aleatório é apenas a variação de intercepto entre as praias. Assim, podemos prosseguir com a verificação dos efeitos fixos através da seleção de modelos pela tabela de ANOVA.
+
+## Inferência por seleção de modelos pela tabela de ANOVA
+
+Agova vamos avaliar os modelos mistos quanto à sua estrutura fixa através da comparação de modelos por ANOVA, da mesma maneira que foi feito no roteiro de LMM.
+
+Comparando modelo com interação entre `Exposure` (lembrando que estamos usando como variável categórica com 3 níveis) e `NAP` e sem interação para ver se a interação é importante:
+
+```{r}
+# modelo com interação entre Exposure e NAP
+m3 <- glmer(Richness ~ as.factor(Exposure) * NAP + (1|Beach), 
+            data = dados, family="poisson")
+
+# modelo sem interação entre exposure e NAP
+m4 <- glmer(Richness ~ as.factor(Exposure) + NAP + (1|Beach), 
+            data = dados, family="poisson")
+```
+
+E aplicamos a função `anova` nos nossos modelos aninhados:
+```{r}
+anova(m3,m4, "LRT")
+```
+
+Como o resultado da comparação entre os modelos não foi significativo, ou seja, o modelo com interação não é significativamente diferente do modelo sem interação. Nós ficamos então com o modelo sem interação e continuamos a compara ele com modelos com apenas uma das variáveis preditoras por vez:
+
+```{r}
+# removendo a variável NAP
+m5 <- glmer(Richness ~ as.factor(Exposure) + (1|Beach), 
+            data = dados, family="poisson")
+anova(m4, m5)
+```
+
+
+O resultado acima nos mostra que não parece razoável remover a variável `NAP` do modelo, pois há uma diferença significativa entre os modelos com e sem `NAP`. 
+
+Agora, vamos comparar novamente o modelo com as duas variáveis preditoras com um modelo sem a variável `Exposure`.
+
+```{r}
+# removendo a variável `Exposure`
+m6<- glmer(Richness ~ NAP + (1|Beach), 
+            data = dados, family="poisson")
+anova(m4, m6)
+```
+
+Também não parece razoável remover `Exposure` e ficar apenas com `NAP`, então nosso modelo final contém apenas o efeito aditivo das duas variáveis. Para finalizar, vamos comparar este modelo com o nulo.
+
+```{r}
+# modelo nulo
+m7 <- glmer(Richness ~ 1 + (1|Beach), data = dados, family="poisson")
+
+anova(m4,m7)
+```
+
+Então podemos concluir que tanto `Exposure` quanto `NAP` influenciam na riqueza de espécies, mas de maneira aditiviva.
+
+
+# Diagnósticos dos modelos
+
+A forma de se fazer o diagnóstico de um GLMM é ligeiramente diferente de um LMM, isso porque não esperamos normalidade nem homocedasticidade dos dados, e mesmo de um GLM, já que residuos escalonados como o resíduo deviance e de Pearson podem não informar bem se o modelo está mal espeficifado. Sugiro fortemente olhar [este roteiro do pacote `DHARMa`](https://theoreticalecology.wordpress.com/2016/08/28/dharma-an-r-package-for-residual-diagnostics-of-glmms/) que explica bem os problemas de usar técnicas de diagnóstico usuais em LMM e GLM para um GLMM e traz soluções bem interessantes!
+
+Nós vamos seguir o diagnóstico proposto por Florian Hartig usando o pacote `DHARMa`. Essa abordagem é baseada em simulações para criar resíduos escalonados, com valores entre 0 e 1, interpretáveis de um modelo GLMM. Aqui, os detalhes estatísticos e teóricos da forma de realizar estas simulações e criar os resíduos escalonados vai ficar de lado (mas está nas referências do pacote `DHARMa`) para que possamos focar em como olhar os gráficos produzidos e inerpretá-los. 
+
+## Criando os resíduos
+
+Os resíduos escalonados (também chamados de resíduos quantílicos) são calculados com a função `simulateResiduals()`, na qual indicamos o nosso modelo GLMM e o número de simulações. Para o número de simulações, o padrão da função é 250 pois pode demora muito, mas para uma análise concreta faça pelo menos 1000. Como os nossos dados são poucos e o modelo simples, vamos utilizar 1000 (mas se se computador demorar, faça com menos simulações).
+
+
+```{r}
+#install.packages("DHARMa") #não esquecer de instalar o pacote
+library(DHARMa)
+
+residuo <- simulateResiduals(fittedModel = m4, n = 1000)
+```
+
+Para os resíduos simulados, tendo um modelo corretamente especificado, deveríamos esperar:
+
+- uma distribuição uniforme de todos os resíduos
+
+- a uniformidade dos resíduos na direção y - se fizermos gráficos de y contra as variáveis preditoras
+
+## Plotando os resíduos
+
+Vamos fazer a inspeção visual dos nossos resíduos:
+
+```{r}
+plotSimulatedResiduals(residuo)
+```
+
+
+À direita, temos um gráfico de quantil-quantil, que nos ajuda a ver se os nossos resíduos estão de acordo com o que é esperado dado o nosso modelo. Portanto, nossos pontos deveriam estar todos alinhados em cima da linha vermelha. Se não estiverem, aí temos problemas! A forma desse não-alinhamento nos indica quais são os possíveis problemas de especifiação do modelo. No nosso modelo, não parece haver desvios muito fortes dos valores esperados.
+
+À esquerda, temos um gráfico dos resíduos contra os valores preditos pelo modelo. Este gráfico nos ajuda a detectar desvios da uniformidade na direção y. As linhas vermelhas são regressões quantílicas que mostram os quantis 0.25, 0.50, 0.75. Estas linhas deveriam ser retas horizontais para cada quantil. **Note** que alguns desvios desta reta são esperados ao acaso, mesmo para um modelo perfeito, especialmente quando o tamanho amostral é pequeno. No nosso caso, temos um valor predito muito alto que puxa as retas vermelhas pra baixo. Vamos avaliar melhor a uniformidade dos resíduos a seguir com o teste de unformidade.
+
+
+
+## Testes de ajustes para os resíduos
+
+O teste de uniformidade nos ajuda a interpretar melhor os resultados do gráfico da direita mostrado anteriormente. Este teste roda um teste de Kolmogorov-Smirnov para testar a uniformidade dos resíduos quantílicos.
+
+```{r}
+testUniformity(residuo)
+```
+
+Este teste nos mostra que os nossos resíduos simulados podem ser considerados uniforme, mesmo que as retas vermelhas do gráfico dos valores dos resíduos x preditos não sejam linhas horizontais porque estão sendo infuenciadas por um único ponto que teve uma predição bem alta.
+
+<!---
+Podemos também plotar os resíduos contra as variáveis preditoras uma a uma.
+
+```{r}
+set.seed(690)
+par(mfrow=c(1,2))
+plotResiduals(dados$NAP, residuo$scaledResiduals, xlab= "NAP")
+plotResiduals(as.factor(dados$Exposure), residuo$scaledResiduals, 
+              xlab="Exposure")
+par(mfrwo=c(1,1))
+```
+--->
+
+**OBS:** Como o objetivo deste roteiro é apenas uma aproximação inicial aos GLMMs, nos limitamos a poucas análises de diagnóstico. Com o pacote `DHARMa`, existe a possibilidade de se explorar:
+
+- A sobredispersão nos resíduos (que indicaria que uma distribuição de poisson já não é adequada - havendo a possibilidade de usar uma distribuição binomial negativa que lida bem com dados sobredispersos). 
+
+- Presença de dados inflados em zero - que é outro problema para as distribuições poisson e binomial.
+
+- A autocorrelação espacial e temporal dos resíduos.
+
+# Gráfico final do modelo
+
+Finalmente, vamos plotar um gráfico com os dados e as curvas de predição para o modelo que foi selecionado - efeito aditivo de `Exposure` e `NAP`. Vamos seguir os passos anteriores para calcular os valores preditos para cada praia e para o modelo como um todo (lembre! aqui estamos usando a predição "naive" apenas para mostrar as curvas de média).
+
+
+```{r}
+#predições para cada praia:
+# Primeiro criamos um novo conjunto de dados com as características no antigo
+novo <- expand.grid(Beach = unique(dados$Beach),
+                    NAP = seq(-1.3,2.2,0.5))
+novo$Exposure <- rep(c(10,8,11,11,10,11,11,10,10),8)
+
+#agora calculamos os valores preditos para esse novo conjunto de dados
+preditos <- predict(m4, newdata = novo, type="response")
+
+#guardando tudo em um novo data.frame
+dados.preditos <- data.frame(pred = preditos, novo)
+```
+
+```{r}
+#predição para todas as praias, ingorando os efeitos aleatórios
+novis <- expand.grid(NAP = seq(-1.3,2.2,0.5),
+                     Exposure = unique(dados$Exposure))
+pred2 <- predict(m4, newdata = novis, type="response", re.form=NA)
+dados.pred2 <- data.frame(pred = pred2, novis)
+```
+
+Agora podemos plotar os dados com o ajuste do nosso modelo:
+
+```{r}
+ggplot(data = dados, aes(x = NAP, y = Richness,        # dados e eixos
+                         color = as.factor(Beach))) + 
+  geom_point(size = 3, shape = 19) +                   # colocando os pontos
+  geom_line(data = dados.pred2, aes(y = pred, x = NAP, 
+                  color = as.factor(Exposure)), show.legend = F, size=1.5) +                    # curva média
+  geom_line(data = dados.preditos, aes(y = pred, x = NAP, 
+                            col = as.factor(Beach)))  + # curva para cada praia
+ theme(legend.position ="none")
+
+abline()
+```
+
+Repare que agora as curvas para cada praia estão agrupadas ao redor das curvas de cada `Exposure`, justamente porque cada praia é classificada com uma categori de `Exposure`. 
+
+
+# Referências e recomendações
+
+[Bates, et al. 2014.](http://arxiv.org/abs/1406.5823).**Fitting linear mixed-effects models using lme4**. arXiv preprint arXiv:1406.5823. (publicação do pacote `lme4`)
+
+Florian	Hartig	(2016).	DHARMa:	Residual	Diagnostics	for Hierarchical	(Multi-Level	/	Mixed)	Regression	Models.	R	package. version	0.1.2.	https://github.com/florianhartig/DHARMa
+
+
+[Zuur, A., Ieno, E., Walker, N., Saveliev, A. & Smith, G. 2009.](http://gen.lib.rus.ec/search.php?req=mixed+effect+models+and+extensions+with+r&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def) Mixed effects models and extensions in ecology with R. (Livro muito bom e completo sobre modelos mistos e aditivos)
+
+
+
+
+
+
