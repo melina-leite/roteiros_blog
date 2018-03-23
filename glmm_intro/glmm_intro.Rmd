@@ -166,7 +166,8 @@ library(bbmle)
 AICctab(m0, m1,m2, base = T, weights = T)
 ```
 
-Bom, agora sabemos que a melhor estrutura de efeito aleatório é apenas a variação de intercepto entre as praias. Assim, podemos prosseguir com a verificação dos efeitos fixos através da seleção de modelos pela tabela de ANOVA.
+Aqui temos que o modelo com interação entre o efeito fixo de `NAP` e o efeito aleatório `Beach` parece o mais plausível. Porém, o modelo mais simples com apenas intercepto aleatório é igualmente plausível ao melhor modelo (usando um critério de $\Delta{AICc}$ menor do que 2). Nesse caso, uma boa solução para a escolha do efeito aleatório é ficar com o componente aleatório mais simples. Logo, vamos manter o modelo 1. Assim, podemos prosseguir com a verificação dos efeitos fixos através da seleção de modelos pela tabela de ANOVA.
+
 
 ## Inferência por seleção de modelos pela tabela de ANOVA
 
@@ -277,18 +278,6 @@ testUniformity(residuo)
 
 Este teste nos mostra que os nossos resíduos simulados podem ser considerados uniforme, mesmo que as retas vermelhas do gráfico dos valores dos resíduos x preditos não sejam linhas horizontais porque estão sendo infuenciadas por um único ponto que teve uma predição bem alta.
 
-<!---
-Podemos também plotar os resíduos contra as variáveis preditoras uma a uma.
-
-```{r}
-set.seed(690)
-par(mfrow=c(1,2))
-plotResiduals(dados$NAP, residuo$scaledResiduals, xlab= "NAP")
-plotResiduals(as.factor(dados$Exposure), residuo$scaledResiduals, 
-              xlab="Exposure")
-par(mfrwo=c(1,1))
-```
---->
 
 **OBS:** Como o objetivo deste roteiro é apenas uma aproximação inicial aos GLMMs, nos limitamos a poucas análises de diagnóstico. Com o pacote `DHARMa`, existe a possibilidade de se explorar:
 
